@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "482821091519",
+    "project_id": "three-d-track-app",
+    "storage_bucket": "three-d-track-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:482821091519:android:c7a5cf004f89f46954160a",
+        "android_client_info": {
+          "package_name": "com.threeddaic.three_3d_track"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBc_CRnGTQDI1gZ3UDYKemTW3Sfb-UoyCE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
