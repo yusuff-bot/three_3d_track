@@ -74,6 +74,16 @@ flutter:
     - assets/wp.png
     - assets/logo1.png
     - assets/chart.png
+    - assets/decor.png
+    - assets/art.png
+    - assets/accessories.png
+    - assets/fashion.png
+    - assets/jewellery.png
+    - assets/other.png
+    - assets/vase.png
+    - assets/lmp.png
+    - assets/phone.png
+    - assets/toy.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
