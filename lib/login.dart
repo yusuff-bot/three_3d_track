@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'sign_in.dart'; // For Sign Up navigation
+import 'forgetpassword.dart'; // Forgot Password page
+import 'customerdashboard.dart'; // Dashboard page
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -14,8 +16,9 @@ class _LoginState extends State<Login> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _rememberMe = false;
+  bool _obscurePassword = true;
 
-  // 🔹 Function to open email app
+  // Open email app
   Future<void> _launchEmail() async {
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
@@ -35,14 +38,14 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // light gray background
+      backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🔹 Help Icon (Top Right)
+              // Help icon
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -83,10 +86,9 @@ class _LoginState extends State<Login> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 20),
 
-              // 🔹 Title
+              // Title & subtitle
               const Text(
                 "Welcome Back!",
                 style: TextStyle(
@@ -95,31 +97,23 @@ class _LoginState extends State<Login> {
                   color: Colors.black,
                 ),
               ),
-
               const SizedBox(height: 8),
-
               const Text(
                 "Log in to continue tracking your 3D prints.",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
-
               const SizedBox(height: 32),
 
-              // 🔹 Login Form
+              // Form
               Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Email
                     const Text(
                       "Email",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -144,20 +138,17 @@ class _LoginState extends State<Login> {
                         return null;
                       },
                     ),
-
                     const SizedBox(height: 20),
 
+                    // Password
                     const Text(
                       "Password",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _passwordController,
-                      obscureText: true,
+                      obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         hintText: "Enter your password",
                         fillColor: const Color(0xFFF0F1F3),
@@ -165,6 +156,17 @@ class _LoginState extends State<Login> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
                         ),
                       ),
                       validator: (value) {
@@ -177,10 +179,9 @@ class _LoginState extends State<Login> {
                         return null;
                       },
                     ),
-
                     const SizedBox(height: 12),
 
-                    // 🔹 Remember Me + Forgot Password Row
+                    // Remember Me + Forgot Password
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -203,7 +204,11 @@ class _LoginState extends State<Login> {
                         ),
                         TextButton(
                           onPressed: () {
-                            // Forgot password logic here
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const ForgotPasswordPage()),
+                            );
                           },
                           child: const Text(
                             "Forgot Password?",
@@ -215,10 +220,9 @@ class _LoginState extends State<Login> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 28),
 
-                    // 🔹 Log In Button
+                    // Log In → Dashboard
                     SizedBox(
                       width: double.infinity,
                       height: 56,
@@ -232,8 +236,12 @@ class _LoginState extends State<Login> {
                         ),
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Logging in...')),
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DashboardPage(
+                                    username: _emailController.text.split('@')[0]),
+                              ),
                             );
                           }
                         },
@@ -248,10 +256,9 @@ class _LoginState extends State<Login> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 20),
 
-                    // 🔹 Footer Navigation
+                    // Footer → Sign Up
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -263,7 +270,8 @@ class _LoginState extends State<Login> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const SignUpPage()),
+                              MaterialPageRoute(
+                                  builder: (context) => const SignUpPage()),
                             );
                           },
                           child: const Text(
