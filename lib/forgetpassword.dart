@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -19,30 +20,59 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       _isLoading = true;
     });
 
-    // Simulate sending reset link
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      // 1️⃣ Send password reset email via Firebase
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: _emailController.text.trim(),
+      );
 
-    setState(() {
-      _isLoading = false;
-    });
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Reset Link Sent"),
-        content: Text(
-            "A password reset link has been sent to ${_emailController.text}"),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Go back to Login
-            },
-            child: const Text("OK"),
+      // 2️⃣ Show success dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text("Reset Link Sent"),
+            content: Text(
+                "A password reset link has been sent to ${_emailController.text}"),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog
+                  Navigator.pop(context); // Go back to Login
+                },
+                child: const Text("OK"),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      // 3️⃣ Handle Firebase errors
+      String message = "Failed to send reset link";
+      if (e.code == 'user-not-found') {
+        message = 'No user found with this email';
+      } else if (e.code == 'invalid-email') {
+        message = 'The email address is not valid';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override

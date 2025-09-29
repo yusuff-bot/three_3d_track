@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'sign_in.dart'; // For Sign Up navigation
 import 'forgetpassword.dart'; // Forgot Password page
@@ -17,8 +18,9 @@ class _LoginState extends State<Login> {
   final TextEditingController _passwordController = TextEditingController();
   bool _rememberMe = false;
   bool _obscurePassword = true;
+  bool _isLoading = false; // show loading spinner during login
 
-  // Open email app
+  // Open email app for help
   Future<void> _launchEmail() async {
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
@@ -32,6 +34,66 @@ class _LoginState extends State<Login> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not open email app')),
       );
+    }
+  }
+
+  // Login with Firebase Authentication
+  Future<void> _loginUser() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Firebase Auth sign in
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login successful!')),
+        );
+
+        // Navigate to dashboard after successful login
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DashboardPage(
+              username: _emailController.text.split('@')[0],
+            ),
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = 'Login failed. Please try again.';
+      if (e.code == 'user-not-found') {
+        errorMessage = 'No user found with this email.';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Incorrect password.';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'Invalid email address.';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -88,7 +150,7 @@ class _LoginState extends State<Login> {
               ),
               const SizedBox(height: 20),
 
-              // Title & subtitle
+              // Title
               const Text(
                 "Welcome Back!",
                 style: TextStyle(
@@ -104,16 +166,17 @@ class _LoginState extends State<Login> {
               ),
               const SizedBox(height: 32),
 
-              // Form
+              // Login form
               Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Email
+                    // Email field
                     const Text(
                       "Email",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      style:
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -140,10 +203,11 @@ class _LoginState extends State<Login> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Password
+                    // Password field
                     const Text(
                       "Password",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      style:
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -159,7 +223,9 @@ class _LoginState extends State<Login> {
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                             color: Colors.grey,
                           ),
                           onPressed: () {
@@ -196,10 +262,8 @@ class _LoginState extends State<Login> {
                                 });
                               },
                             ),
-                            const Text(
-                              "Remember Me",
-                              style: TextStyle(color: Colors.grey),
-                            ),
+                            const Text("Remember Me",
+                                style: TextStyle(color: Colors.grey)),
                           ],
                         ),
                         TextButton(
@@ -207,7 +271,8 @@ class _LoginState extends State<Login> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const ForgotPasswordPage()),
+                                  builder: (context) =>
+                                  const ForgotPasswordPage()),
                             );
                           },
                           child: const Text(
@@ -222,7 +287,7 @@ class _LoginState extends State<Login> {
                     ),
                     const SizedBox(height: 28),
 
-                    // Log In → Dashboard
+                    // Login Button
                     SizedBox(
                       width: double.infinity,
                       height: 56,
@@ -234,18 +299,12 @@ class _LoginState extends State<Login> {
                           ),
                           elevation: 3,
                         ),
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => DashboardPage(
-                                    username: _emailController.text.split('@')[0]),
-                              ),
-                            );
-                          }
-                        },
-                        child: const Text(
+                        onPressed: _isLoading ? null : _loginUser,
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                          color: Colors.white,
+                        )
+                            : const Text(
                           "Log In",
                           style: TextStyle(
                             fontSize: 18,
