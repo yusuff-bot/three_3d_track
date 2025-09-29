@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // For hiding status bar
+import 'package:flutter/services.dart';
+import 'customerhomepage.dart';
 
 class DashboardPage extends StatelessWidget {
   final String username;
@@ -8,7 +9,7 @@ class DashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Hide the status bar (time, battery, etc.)
+    // Hide the status bar
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
 
     return Scaffold(
@@ -18,7 +19,7 @@ class DashboardPage extends StatelessWidget {
         elevation: 2,
         toolbarHeight: 80,
         centerTitle: true,
-        automaticallyImplyLeading: false, // Removes back arrow
+        automaticallyImplyLeading: false,
         title: const Text(
           "3D Track",
           style: TextStyle(
@@ -31,7 +32,7 @@ class DashboardPage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black),
             onPressed: () {
-              // Navigate to cart or products page
+              // Navigate to cart page if available
             },
           ),
         ],
@@ -40,8 +41,6 @@ class DashboardPage extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 24),
-
-            // Centered Welcome message
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Center(
@@ -57,8 +56,6 @@ class DashboardPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Description
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: const Text(
@@ -72,16 +69,14 @@ class DashboardPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 40),
-
-            // Large image with rounded corners and side padding
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30), // padding from sides
+              padding: const EdgeInsets.symmetric(horizontal: 30),
               child: Container(
                 width: double.infinity,
                 height: 550,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
-                  color: Colors.black, // optional background
+                  color: Colors.black,
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(24),
@@ -108,7 +103,13 @@ class DashboardPage extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
-                    // Navigate to product catalog
+                    // Navigate to ShopPage with FeaturedProducts
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const customerhomepage(),
+                      ),
+                    );
                   },
                   child: const Text(
                     "Start Shopping",
