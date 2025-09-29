@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -18,16 +20,81 @@ class _SignUpPageState extends State<SignUpPage> {
 
   bool _obscurePassword = true;
   bool _showPasswordRule = false;
+  bool _isLoading = false; // to show loading during signup
 
   @override
   void initState() {
     super.initState();
-
     _passwordController.addListener(() {
       setState(() {
         _showPasswordRule = _passwordController.text.isNotEmpty;
       });
     });
+  }
+
+  // Function to sign up user
+  Future<void> _signUpUser() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // 1️⃣ Create user with email & password
+      UserCredential userCredential =
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      // 2️⃣ Save extra user info in Firestore inside "users" collection
+      await FirebaseFirestore.instance
+          .collection('users') // collection name
+          .doc(userCredential.user!.uid) // document ID = UID
+          .set({
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // 3️⃣ Show success message & navigate to Login page
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sign Up Successful!')),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Login()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = 'Error signing up';
+      if (e.code == 'email-already-in-use') {
+        message = 'Email is already registered';
+      } else if (e.code == 'weak-password') {
+        message = 'Password is too weak';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -42,7 +109,6 @@ class _SignUpPageState extends State<SignUpPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header Title
                 const Text(
                   "Sign Up",
                   style: TextStyle(
@@ -53,8 +119,6 @@ class _SignUpPageState extends State<SignUpPage> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
-
-                // Subtitle aligned left and bold
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -66,18 +130,12 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 24),
 
-                // 🔹 Name Field
-                const Text(
-                  "Name",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
+                // Name
+                const Text("Name",
+                    style:
+                    TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 TextFormField(
                   controller: _nameController,
@@ -86,9 +144,8 @@ class _SignUpPageState extends State<SignUpPage> {
                     filled: true,
                     fillColor: const Color(0xFFF0F2F5),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -97,31 +154,24 @@ class _SignUpPageState extends State<SignUpPage> {
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 12),
 
-                // 🔹 Email Field
-                const Text(
-                  "Email",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
+                // Email
+                const Text("Email",
+                    style:
+                    TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 TextFormField(
                   controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     hintText: "Enter your email",
                     filled: true,
                     fillColor: const Color(0xFFF0F2F5),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none),
                   ),
-                  keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return "Please enter your email";
@@ -132,18 +182,12 @@ class _SignUpPageState extends State<SignUpPage> {
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 12),
 
-                // 🔹 Password Field
-                const Text(
-                  "Password",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
+                // Password
+                const Text("Password",
+                    style:
+                    TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 TextFormField(
                   controller: _passwordController,
@@ -153,12 +197,13 @@ class _SignUpPageState extends State<SignUpPage> {
                     filled: true,
                     fillColor: const Color(0xFFF0F2F5),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                         color: Colors.grey,
                       ),
                       onPressed: () {
@@ -184,44 +229,32 @@ class _SignUpPageState extends State<SignUpPage> {
                     return null;
                   },
                 ),
-
-                // Show password rule only when user types
                 if (_showPasswordRule)
                   const Padding(
                     padding: EdgeInsets.only(top: 8),
                     child: Text(
                       "Password must be at least 8 characters long and include a number and a special character.",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B7280),
-                      ),
+                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                     ),
                   ),
-
                 const SizedBox(height: 12),
 
-                // 🔹 Phone Number Field
-                const Text(
-                  "Phone Number",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
+                // Phone
+                const Text("Phone Number",
+                    style:
+                    TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 TextFormField(
                   controller: _phoneController,
+                  keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
                     hintText: "Enter your phone number",
                     filled: true,
                     fillColor: const Color(0xFFF0F2F5),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none),
                   ),
-                  keyboardType: TextInputType.phone,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return "Please enter your phone number";
@@ -232,48 +265,42 @@ class _SignUpPageState extends State<SignUpPage> {
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 28),
 
-                // 🔹 Sign Up Button
+                // Sign Up Button
                 SizedBox(
                   height: 48,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1AB3E6), // turquoise
+                      backgroundColor: const Color(0xFF1AB3E6),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                          borderRadius: BorderRadius.circular(8)),
                       elevation: 0,
                     ),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        // Add your sign-up logic here
-                      }
-                    },
-                    child: const Text(
+                    onPressed: _isLoading ? null : _signUpUser,
+                    child: _isLoading
+                        ? const CircularProgressIndicator(
+                      color: Colors.white,
+                    )
+                        : const Text(
                       "Sign Up",
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF121717), // dark charcoal
-                      ),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF121717)),
                     ),
                   ),
                 ),
 
                 const SizedBox(height: 24),
 
-                // 🔹 Footer Link
+                // Footer: Already have account?
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
                       "Already have an account? ",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF638087),
-                      ),
+                      style: TextStyle(fontSize: 14, color: Color(0xFF638087)),
                     ),
                     GestureDetector(
                       onTap: () {
@@ -285,10 +312,9 @@ class _SignUpPageState extends State<SignUpPage> {
                       child: const Text(
                         "Log In",
                         style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF638087),
-                          decoration: TextDecoration.underline,
-                        ),
+                            fontSize: 14,
+                            color: Color(0xFF638087),
+                            decoration: TextDecoration.underline),
                       ),
                     ),
                   ],
