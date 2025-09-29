@@ -25,7 +25,7 @@ class Welcome extends StatelessWidget {
                     'assets/wp.png',
                     fit: BoxFit.cover,
                     width: double.infinity,
-                    height: MediaQuery.of(context).size.height * 0.45, // taller image
+                    height: MediaQuery.of(context).size.height * 0.3, // taller image
                   ),
                 ),
 
@@ -123,7 +123,7 @@ class Welcome extends StatelessWidget {
                 ),
             ),
 
-                const SizedBox(height: 120),
+                const SizedBox(height: 230),
 
                 // 🔹 Footer Links
                 Column(
