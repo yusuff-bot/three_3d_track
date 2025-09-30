@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'sign_in.dart'; // For Sign Up navigation
-import 'forgetpassword.dart'; // Forgot Password page
-import 'customerdashboard.dart'; // Dashboard page
+import 'package:shared_preferences/shared_preferences.dart'; // ✅ add this
+import 'sign_in.dart';
+import 'forgetpassword.dart';
+import 'customerdashboard.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -18,9 +19,32 @@ class _LoginState extends State<Login> {
   final TextEditingController _passwordController = TextEditingController();
   bool _rememberMe = false;
   bool _obscurePassword = true;
-  bool _isLoading = false; // show loading spinner during login
+  bool _isLoading = false;
 
-  // Open email app for help
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedLogin(); // ✅ Load remembered credentials
+  }
+
+  // ✅ Step 1: Load saved email/password from SharedPreferences
+  Future<void> _loadRememberedLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rememberMe = prefs.getBool('rememberMe') ?? false;
+
+    if (rememberMe) {
+      setState(() {
+        _rememberMe = true;
+        _emailController.text = prefs.getString('savedEmail') ?? '';
+        _passwordController.text = prefs.getString('savedPassword') ?? '';
+      });
+
+      // Optional: Auto-login directly
+      await _loginUser(autoLogin: true);
+    }
+  }
+
+  // Help email
   Future<void> _launchEmail() async {
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
@@ -37,27 +61,35 @@ class _LoginState extends State<Login> {
     }
   }
 
-  // Login with Firebase Authentication
-  Future<void> _loginUser() async {
-    if (!_formKey.currentState!.validate()) return;
+  // ✅ Step 2: Login user + Save preferences if Remember Me is checked
+  Future<void> _loginUser({bool autoLogin = false}) async {
+    if (!autoLogin && !_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Firebase Auth sign in
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+
+      // ✅ Save login info if Remember Me is checked
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe) {
+        await prefs.setBool('rememberMe', true);
+        await prefs.setString('savedEmail', _emailController.text.trim());
+        await prefs.setString('savedPassword', _passwordController.text.trim());
+      } else {
+        await prefs.clear();
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login successful!')),
         );
 
-        // Navigate to dashboard after successful login
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -150,7 +182,6 @@ class _LoginState extends State<Login> {
               ),
               const SizedBox(height: 20),
 
-              // Title
               const Text(
                 "Welcome Back!",
                 style: TextStyle(
@@ -166,18 +197,13 @@ class _LoginState extends State<Login> {
               ),
               const SizedBox(height: 32),
 
-              // Login form
               Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Email field
-                    const Text(
-                      "Email",
-                      style:
-                      TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
+                    const Text("Email",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _emailController,
@@ -203,12 +229,8 @@ class _LoginState extends State<Login> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Password field
-                    const Text(
-                      "Password",
-                      style:
-                      TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
+                    const Text("Password",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _passwordController,
@@ -247,7 +269,7 @@ class _LoginState extends State<Login> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Remember Me + Forgot Password
+                    // ✅ Remember Me + Forgot Password
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -287,7 +309,7 @@ class _LoginState extends State<Login> {
                     ),
                     const SizedBox(height: 28),
 
-                    // Login Button
+                    // Login button
                     SizedBox(
                       width: double.infinity,
                       height: 56,
@@ -297,34 +319,27 @@ class _LoginState extends State<Login> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          elevation: 3,
                         ),
-                        onPressed: _isLoading ? null : _loginUser,
+                        onPressed: _isLoading ? null : () => _loginUser(),
                         child: _isLoading
-                            ? const CircularProgressIndicator(
-                          color: Colors.white,
-                        )
+                            ? const CircularProgressIndicator(color: Colors.white)
                             : const Text(
                           "Log In",
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
-                            letterSpacing: 0.5,
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 20),
 
-                    // Footer → Sign Up
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          "Don't have an account?",
-                          style: TextStyle(color: Colors.grey),
-                        ),
+                        const Text("Don't have an account?",
+                            style: TextStyle(color: Colors.grey)),
                         TextButton(
                           onPressed: () {
                             Navigator.push(
