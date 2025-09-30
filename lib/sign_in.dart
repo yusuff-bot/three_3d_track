@@ -48,7 +48,7 @@ class _SignUpPageState extends State<SignUpPage> {
         password: _passwordController.text.trim(),
       );
 
-      // 2️⃣ Save extra user info in Firestore inside "users" collection
+      //  Save extra user info in Firestore inside "users" collection
       await FirebaseFirestore.instance
           .collection('users') // collection name
           .doc(userCredential.user!.uid) // document ID = UID
@@ -56,6 +56,7 @@ class _SignUpPageState extends State<SignUpPage> {
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
+        'role': 'customer',
         'createdAt': FieldValue.serverTimestamp(),
       });
 
