@@ -56,6 +56,7 @@ class _SignUpPageState extends State<SignUpPage> {
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
+        'role': 'customer',
         'createdAt': FieldValue.serverTimestamp(),
       });
 
