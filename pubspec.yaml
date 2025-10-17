@@ -84,6 +84,16 @@ flutter:
     - assets/lmp.png
     - assets/phone.png
     - assets/toy.png
+    - assets/desk.png
+    - assets/miniature.png
+    - assets/photo.png
+    - assets/wall.png
+    - assets/Status.png
+    - assets/bookmarks.png
+    - assets/coaster.png
+    - assets/holder.png
+    - assets/keychain.png
+    - assets/stand.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
