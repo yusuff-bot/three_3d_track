@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'cartpage.dart'; // Your actual cart page
-import 'customerprofile.dart'; // Your actual profile page
+import 'cartpage.dart';
+import 'customerprofile.dart';
+import 'homedecor.dart';
+import 'accessories.dart';
 
 class customerhomepage extends StatefulWidget {
   const customerhomepage({super.key});
@@ -113,7 +115,7 @@ class _CustomerHomePageState extends State<customerhomepage> {
             ),
             const SizedBox(height: 12),
 
-            // Categories Grid without grey background
+            // Categories Grid
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: GridView.builder(
@@ -128,36 +130,56 @@ class _CustomerHomePageState extends State<customerhomepage> {
                 ),
                 itemBuilder: (context, index) {
                   final category = categories[index];
-                  return Column(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(16),
+                  return GestureDetector(
+                    onTap: () {
+                      if (category['name'] == "Home Decor") {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const HomeOfficeDecorPage(), // 👈 Open the decor page
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.asset(
-                              category['image']!,
-                              fit: BoxFit.cover,
+                        );
+                      }
+                      else if (category['name'] == "Accessories") {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AccessoriesPage(),
+                          ),
+                        );
+                      }
+                    },
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.asset(
+                                category['image']!,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        category['name']!,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Text(
+                          category['name']!,
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
                   );
                 },
               ),
             ),
             const SizedBox(height: 24),
 
-            // Featured Products title aligned left
+            // Featured Products
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0),
               child: Align(
@@ -170,7 +192,6 @@ class _CustomerHomePageState extends State<customerhomepage> {
             ),
             const SizedBox(height: 8),
 
-            // Featured Products horizontal scroll without Buy Now
             SizedBox(
               height: 220,
               child: ListView.builder(
