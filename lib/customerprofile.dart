@@ -1,178 +1,187 @@
 import 'package:flutter/material.dart';
+import 'ResetPasswordPage.dart'; // Your ResetPasswordPage
+import 'login.dart';
 
-class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+class SettingsPage extends StatelessWidget {
+  final String userName;
+  final String userEmail;
 
-  @override
-  State<SettingsPage> createState() => _SettingsPageState();
-}
+  const SettingsPage({
+    super.key,
+    required this.userName,
+    required this.userEmail,
+  });
 
-class _SettingsPageState extends State<SettingsPage> {
-  bool _orderUpdates = true;
-  bool _promotions = false;
-  int _selectedIndex = 0;
-
-  void _onBottomNavTap(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    // Add navigation logic here
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        centerTitle: true,
-        title: const Text(
-          "Settings",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
+  void _launchEmail(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Need Help?"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Account Section
-            Card(
-              margin: const EdgeInsets.all(12),
-              elevation: 2,
-              child: ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Colors.blue,
-                  child: Icon(Icons.person, color: Colors.white),
-                ),
-                title: const Text("John Doe",
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text("johndoe@email.com"),
-                trailing: IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () {
-                    // Navigate to Edit Profile page
-                  },
-                ),
-              ),
-            ),
-
-            // Change Password
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              elevation: 2,
-              child: ListTile(
-                title: const Text("Change Password"),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  // Navigate to Change Password page
-                },
-              ),
-            ),
-
-            // Notifications
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              elevation: 2,
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    title: const Text("Order Updates"),
-                    value: _orderUpdates,
-                    onChanged: (val) {
-                      setState(() {
-                        _orderUpdates = val;
-                      });
-                    },
-                  ),
-                  SwitchListTile(
-                    title: const Text("Promotions"),
-                    value: _promotions,
-                    onChanged: (val) {
-                      setState(() {
-                        _promotions = val;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            // Privacy Settings
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              elevation: 2,
-              child: ListTile(
-                title: const Text("Privacy Settings"),
-                subtitle: const Text("Data Sharing"),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  // Navigate to Privacy Settings page
-                },
-              ),
-            ),
-
-            // Help & Support
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              elevation: 2,
-              child: Column(
-                children: [
-                  ListTile(
-                    title: const Text("FAQ"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      // Navigate to FAQ page
-                    },
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    title: const Text("Contact Us"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      // Navigate to Contact page
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            // Log Out
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  minimumSize: const Size.fromHeight(50),
-                ),
-                onPressed: () {
-                  // Log out action
-                },
-                child: const Text(
-                  "Log Out",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            const Text("For assistance, contact:"),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () {
+                // You could use url_launcher to open email here
+              },
+              child: const Text(
+                "3dtrack162914@gmail.com",
+                style: TextStyle(
+                  color: Color(0xFF1AB3E6),
+                  decoration: TextDecoration.underline,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
           ],
         ),
-      ),
-
-      // Bottom Navigation Bar
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        onTap: _onBottomNavTap,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Cart"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+        actions: [
+          TextButton(
+            child: const Text("OK"),
+            onPressed: () => Navigator.pop(context),
+          ),
         ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 1,
+        leading: const SizedBox(), // Remove back button since it’s a tab
+        title: const Text(
+          "Profile",
+          style: TextStyle(color: Colors.black),
+        ),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Account Information
+              const Text(
+                "Account Information",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.person)),
+                title: Text(userName),
+                subtitle: Text(userEmail),
+                trailing: IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () {
+                    // Could open edit profile screen
+                  },
+                ),
+              ),
+              ListTile(
+                title: const Text("Change Password"),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ResetPasswordPage()),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 24),
+
+              // Notifications
+              const Text(
+                "Notifications",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                title: const Text("Order Updates"),
+                value: false,
+                onChanged: (val) {},
+              ),
+              SwitchListTile(
+                title: const Text("Promotions"),
+                value: false,
+                onChanged: (val) {},
+              ),
+
+              const SizedBox(height: 24),
+
+              // Privacy Settings
+              const Text(
+                "Privacy Settings",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                title: const Text("Data Sharing Preferences"),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  // Navigate to privacy settings page
+                },
+              ),
+
+              const SizedBox(height: 24),
+
+              // Help & Support
+              const Text(
+                "Help & Support",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                title: const Text("FAQ"),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  // Navigate to FAQ page
+                },
+              ),
+              ListTile(
+                title: const Text("Contact Us"),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () => _launchEmail(context),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Log Out Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const Login()),
+                          (route) => false,
+                    );
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Text(
+                      "Log Out",
+                      style:
+                      TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

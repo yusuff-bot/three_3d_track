@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // ✅ Add this
 import 'package:url_launcher/url_launcher.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // ✅ add this
+import 'package:shared_preferences/shared_preferences.dart';
 import 'sign_in.dart';
 import 'forgetpassword.dart';
 import 'customerdashboard.dart';
+
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -90,11 +92,22 @@ class _LoginState extends State<Login> {
           const SnackBar(content: Text('Login successful!')),
         );
 
+        // After FirebaseAuth signIn
+        final user = FirebaseAuth.instance.currentUser!;
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        final name = userDoc['name']; // Fetch the name
+        final email = user.email;      // Already have the email
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => DashboardPage(
-              username: _emailController.text.split('@')[0],
+              username: name, // user's signup name
+              userEmail: email!,
             ),
           ),
         );
