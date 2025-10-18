@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'filters.dart';
 
 class AccessoriesPage extends StatefulWidget {
   const AccessoriesPage({super.key});
@@ -114,7 +115,22 @@ class _AccessoriesPageState extends State<AccessoriesPage> {
       // Floating Filter Button
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.blueAccent,
-        onPressed: () {},
+        onPressed: () async {
+          final result = await showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            builder: (_) => const FilterSortModal(), // opens the modal
+          );
+
+          if (result != null) {
+            // result is a map with selected sort and availability
+            print(result);
+            // TODO: Apply sorting/filtering logic to your accessories list here
+          }
+        },
         icon: const Icon(Icons.filter_list),
         label: const Text("Filters"),
       ),

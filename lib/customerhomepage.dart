@@ -3,58 +3,87 @@ import 'cartpage.dart';
 import 'customerprofile.dart';
 import 'homedecor.dart';
 import 'accessories.dart';
+import 'search.dart';
 
-class customerhomepage extends StatefulWidget {
-  const customerhomepage({super.key});
+class CustomerHomePage extends StatefulWidget {
+  final String userName;
+  final String userEmail;
+
+  const CustomerHomePage({
+    super.key,
+    required this.userName,
+    required this.userEmail,
+  });
 
   @override
-  State<customerhomepage> createState() => _CustomerHomePageState();
+  State<CustomerHomePage> createState() => _CustomerHomePageState();
 }
 
-class _CustomerHomePageState extends State<customerhomepage> {
+class _CustomerHomePageState extends State<CustomerHomePage> {
   int _selectedIndex = 0;
+
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      _HomeTab(),
+      const SearchPage(),
+      const CartPage(),
+      SettingsPage(userName: widget.userName, userEmail: widget.userEmail),
+    ];
+  }
 
   void _onBottomNavTap(int index) {
     setState(() {
       _selectedIndex = index;
     });
-
-    switch (index) {
-      case 0:
-        break;
-      case 2:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const CartPage()),
-        );
-        break;
-      case 3:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const SettingsPage()),
-        );
-        break;
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, String>> categories = [
-      {"name": "Home Decor", "image": "assets/decor.png"},
-      {"name": "Art", "image": "assets/art.png"},
-      {"name": "Accessories", "image": "assets/accessories.png"},
-      {"name": "Fashion", "image": "assets/fashion.png"},
-      {"name": "Jewelry", "image": "assets/jewellery.png"},
-      {"name": "Other", "image": "assets/other.png"},
-    ];
+    return Scaffold(
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
+        onTap: _onBottomNavTap,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Cart"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+        ],
+      ),
+    );
+  }
+}
 
-    final List<Map<String, String>> featuredProducts = [
-      {"name": "Modern Vase", "price": "₹1200", "image": "assets/vase.png"},
-      {"name": "Geometric Lamp", "price": "₹1500", "image": "assets/lmp.png"},
-      {"name": "Custom iPhone", "price": "₹900", "image": "assets/phone.png"},
-      {"name": "Toy", "price": "₹2000", "image": "assets/toy.png"},
-    ];
+// ------------------- Home Tab Widget -------------------
 
+class _HomeTab extends StatelessWidget {
+  final List<Map<String, String>> categories = [
+    {"name": "Home Decor", "image": "assets/decor.png"},
+    {"name": "Art", "image": "assets/art.png"},
+    {"name": "Accessories", "image": "assets/accessories.png"},
+    {"name": "Fashion", "image": "assets/fashion.png"},
+    {"name": "Jewelry", "image": "assets/jewellery.png"},
+    {"name": "Other", "image": "assets/other.png"},
+  ];
+
+  final List<Map<String, String>> featuredProducts = [
+    {"name": "Modern Vase", "price": "₹1200", "image": "assets/vase.png"},
+    {"name": "Geometric Lamp", "price": "₹1500", "image": "assets/lmp.png"},
+    {"name": "Custom iPhone", "price": "₹900", "image": "assets/phone.png"},
+    {"name": "Toy", "price": "₹2000", "image": "assets/toy.png"},
+  ];
+
+  _HomeTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -66,43 +95,39 @@ class _CustomerHomePageState extends State<customerhomepage> {
           "3D Track",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CartPage()),
-              );
-            },
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
             const SizedBox(height: 16),
-
-            // Search Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: "Search products...",
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SearchPage()),
+                  );
+                },
+                child: IgnorePointer(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: "Search products...",
+                      prefixIcon: const Icon(Icons.search),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 24),
-
-            // Categories title
+            // Categories
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0),
               child: Align(
@@ -114,8 +139,6 @@ class _CustomerHomePageState extends State<customerhomepage> {
               ),
             ),
             const SizedBox(height: 12),
-
-            // Categories Grid
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: GridView.builder(
@@ -135,17 +158,12 @@ class _CustomerHomePageState extends State<customerhomepage> {
                       if (category['name'] == "Home Decor") {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => const HomeOfficeDecorPage(), // 👈 Open the decor page
-                          ),
+                          MaterialPageRoute(builder: (_) => const HomeOfficeDecorPage()),
                         );
-                      }
-                      else if (category['name'] == "Accessories") {
+                      } else if (category['name'] == "Accessories") {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => const AccessoriesPage(),
-                          ),
+                          MaterialPageRoute(builder: (_) => const AccessoriesPage()),
                         );
                       }
                     },
@@ -178,7 +196,6 @@ class _CustomerHomePageState extends State<customerhomepage> {
               ),
             ),
             const SizedBox(height: 24),
-
             // Featured Products
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -191,7 +208,6 @@ class _CustomerHomePageState extends State<customerhomepage> {
               ),
             ),
             const SizedBox(height: 8),
-
             SizedBox(
               height: 220,
               child: ListView.builder(
@@ -237,8 +253,7 @@ class _CustomerHomePageState extends State<customerhomepage> {
                             padding: const EdgeInsets.all(8.0),
                             child: Text(
                               product['name']!,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 14),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -247,8 +262,7 @@ class _CustomerHomePageState extends State<customerhomepage> {
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                             child: Text(
                               product['price']!,
-                              style: const TextStyle(
-                                  fontSize: 13, color: Colors.green),
+                              style: const TextStyle(fontSize: 13, color: Colors.green),
                             ),
                           ),
                         ],
@@ -258,32 +272,9 @@ class _CustomerHomePageState extends State<customerhomepage> {
                 },
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Can't find a category?
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12.0),
-              child: Text(
-                "Can't find a category?",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
-              ),
-            ),
             const SizedBox(height: 24),
           ],
         ),
-      ),
-
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        onTap: _onBottomNavTap,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Cart"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
       ),
     );
   }

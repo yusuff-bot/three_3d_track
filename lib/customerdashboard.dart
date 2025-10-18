@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'customerhomepage.dart';
+import 'customerhomepage.dart'; // Make sure the class name here matches your file
 
 class DashboardPage extends StatelessWidget {
   final String username;
+  final String userEmail;
 
-  const DashboardPage({super.key, required this.username});
+  const DashboardPage({super.key, required this.username, required this.userEmail});
 
   @override
   Widget build(BuildContext context) {
@@ -81,14 +82,13 @@ class DashboardPage extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(24),
                   child: Image.asset(
-                    'assets/logo1.png', // Replace with your logo
+                    'assets/logo1.png',
                     fit: BoxFit.cover,
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 50),
-
             // Start Shopping Button
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -103,11 +103,13 @@ class DashboardPage extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
-                    // Navigate to ShopPage with FeaturedProducts
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const customerhomepage(),
+                        builder: (context) => CustomerHomePage(
+                          userName: username, // use lowercase 'username'
+                          userEmail: userEmail,
+                        ),
                       ),
                     );
                   },
