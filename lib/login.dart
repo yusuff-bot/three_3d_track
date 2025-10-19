@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // ✅ Add this
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'sign_in.dart';
 import 'forgetpassword.dart';
 import 'customerdashboard.dart';
-
+import 'term_page.dart'; // ✅ IMPORT
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -22,14 +22,15 @@ class _LoginState extends State<Login> {
   bool _rememberMe = false;
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _termsAccepted = false; // ✅ NEW VARIABLE
 
   @override
   void initState() {
     super.initState();
-    _loadRememberedLogin(); // ✅ Load remembered credentials
+    _loadRememberedLogin();
   }
 
-  // ✅ Step 1: Load saved email/password from SharedPreferences
+  // ✅ Load saved login credentials if "Remember Me" was checked
   Future<void> _loadRememberedLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final rememberMe = prefs.getBool('rememberMe') ?? false;
@@ -40,13 +41,11 @@ class _LoginState extends State<Login> {
         _emailController.text = prefs.getString('savedEmail') ?? '';
         _passwordController.text = prefs.getString('savedPassword') ?? '';
       });
-
-      // Optional: Auto-login directly
       await _loginUser(autoLogin: true);
     }
   }
 
-  // Help email
+  // Help email launcher
   Future<void> _launchEmail() async {
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
@@ -63,8 +62,19 @@ class _LoginState extends State<Login> {
     }
   }
 
-  // ✅ Step 2: Login user + Save preferences if Remember Me is checked
+  // ✅ Login User (with T&C check)
   Future<void> _loginUser({bool autoLogin = false}) async {
+    if (!_termsAccepted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            '❌ Login cannot be accepted until you accept Terms & Conditions.',
+          ),
+        ),
+      );
+      return;
+    }
+
     if (!autoLogin && !_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -77,7 +87,6 @@ class _LoginState extends State<Login> {
         password: _passwordController.text.trim(),
       );
 
-      // ✅ Save login info if Remember Me is checked
       final prefs = await SharedPreferences.getInstance();
       if (_rememberMe) {
         await prefs.setBool('rememberMe', true);
@@ -88,25 +97,20 @@ class _LoginState extends State<Login> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login successful!')),
-        );
-
-        // After FirebaseAuth signIn
         final user = FirebaseAuth.instance.currentUser!;
         final userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .get();
 
-        final name = userDoc['name']; // Fetch the name
-        final email = user.email;      // Already have the email
+        final name = userDoc['name'];
+        final email = user.email;
 
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => DashboardPage(
-              username: name, // user's signup name
+              username: name,
               userEmail: email!,
             ),
           ),
@@ -216,7 +220,8 @@ class _LoginState extends State<Login> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text("Email",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15)),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _emailController,
@@ -243,7 +248,8 @@ class _LoginState extends State<Login> {
                     const SizedBox(height: 20),
 
                     const Text("Password",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15)),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _passwordController,
@@ -282,7 +288,7 @@ class _LoginState extends State<Login> {
                     ),
                     const SizedBox(height: 12),
 
-                    // ✅ Remember Me + Forgot Password
+                    // Remember Me + Forgot Password
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -320,7 +326,53 @@ class _LoginState extends State<Login> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 28),
+
+                    // ✅ Terms and Conditions checkbox
+                    Row(
+                      children: [
+                        Checkbox(
+                          activeColor: const Color(0xFF1AB3E6),
+                          value: _termsAccepted,
+                          onChanged: (value) {
+                            setState(() {
+                              _termsAccepted = value!;
+                            });
+                          },
+                        ),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              const Text("I accept the "),
+                              GestureDetector(
+                                onTap: () {
+                                  // ✅ FIX: Pass the entered email as username
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          TermsAndConditionsPage(
+                                            userName:
+                                            _emailController.text.trim().isEmpty
+                                                ? "User"
+                                                : _emailController.text.trim(),
+                                          ),
+                                    ),
+                                  );
+                                },
+                                child: const Text(
+                                  "Terms & Conditions",
+                                  style: TextStyle(
+                                    color: Color(0xFF1AB3E6),
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
 
                     // Login button
                     SizedBox(
@@ -335,7 +387,8 @@ class _LoginState extends State<Login> {
                         ),
                         onPressed: _isLoading ? null : () => _loginUser(),
                         child: _isLoading
-                            ? const CircularProgressIndicator(color: Colors.white)
+                            ? const CircularProgressIndicator(
+                            color: Colors.white)
                             : const Text(
                           "Log In",
                           style: TextStyle(
