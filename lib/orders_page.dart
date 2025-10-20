@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 
-class OrdersPage extends StatefulWidget {
-  const OrdersPage({super.key});
+class OrderssPage extends StatefulWidget {
+  const OrderssPage({super.key});
 
   @override
-  State<OrdersPage> createState() => _OrdersPageState();
+  State<OrderssPage> createState() => _OrdersPageState();
 }
 
-class _OrdersPageState extends State<OrdersPage> {
+class _OrdersPageState extends State<OrderssPage> {
   String statusFilter = "All";
   String dateFilter = "All";
   String amountFilter = "All";
