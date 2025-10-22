@@ -1,6 +1,8 @@
 // lib/account_screen.dart
 
 import 'package:flutter/material.dart';
+import 'productdetail.dart';
+
 
 // This is the SAME code we made for the Figma design.
 // Just make sure it's in its own file.
@@ -50,17 +52,17 @@ class _AccountScreenState extends State<AccountScreen> {
               const SizedBox(height: 16),
               // ... (The rest of your order card widgets go here)
               _buildOrderCard(
-                imageUrl: 'https://placehold.co/100x100/f0e6e0/7c9a92',
+                imageUrl: 'assets/vase3.png', // <-- Correct
                 orderNumber: '#12345',
                 date: '01/09/2025',
-                price: '\$50',
+                price: '₹60', // <-- Correct
               ),
               const SizedBox(height: 12),
               _buildOrderCard(
-                imageUrl: 'https://placehold.co/100x100/f5e9d4/a89b82',
+                imageUrl: 'assets/vase2.png',
                 orderNumber: '#12346',
                 date: '05/09/2025',
-                price: '\$40',
+                price: '₹40', // <-- Correct
               ),
               // ... etc.
             ],
@@ -153,11 +155,10 @@ class _AccountScreenState extends State<AccountScreen> {
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Row(
-          // ... (rest of the card code)
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8.0),
-              child: Image.network(
+              child: Image.asset( // <--- THIS IS THE FIX
                 imageUrl,
                 width: 60,
                 height: 60,
