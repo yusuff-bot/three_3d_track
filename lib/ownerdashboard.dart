@@ -4,6 +4,7 @@ import 'inventory_page.dart';
 import 'expensepage.dart';
 import 'update_category_page.dart';
 import 'suggestions_page.dart';
+import 'materialdetails.dart'; // <<< Import the Detail Screen
 
 void main() => runApp(const OwnerDashboard(username: ''));
 
@@ -39,6 +40,27 @@ class _DashboardBodyState extends State<DashboardBody> {
     {"id": "#103"},
     {"id": "#104"},
     {"id": "#105"},
+  ];
+
+  // UPDATED: Removed the "Resin - Grey" alert item
+  final List<Map<String, dynamic>> inventoryAlerts = [
+    {
+      "name": "PLA - Blue",
+      "subtitle": "In stock",
+      "asset": 'assets/blue.png',
+      "quantity": 200,
+      "unit": "grams",
+      "color": Colors.blue,
+    },
+    {
+      "name": "ABS - Red",
+      "subtitle": "Low stock",
+      "asset": 'assets/red.png',
+      "quantity": 150,
+      "unit": "grams",
+      "color": Colors.red,
+    },
+    // The "Resin - Grey" item has been removed from this list.
   ];
 
   final List<Map<String, dynamic>> quickLinks = [
@@ -103,7 +125,7 @@ class _DashboardBodyState extends State<DashboardBody> {
           ),
           const SizedBox(height: 16),
 
-          // ---------------- Inventory Alerts ----------------
+          // ---------------- Inventory Alerts (MODIFIED) ----------------
           Card(
             elevation: 3,
             child: Padding(
@@ -116,38 +138,46 @@ class _DashboardBodyState extends State<DashboardBody> {
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                   const SizedBox(height: 8),
-                  ListTile(
-                    leading: Image.asset('assets/blue.png', width: 40, height: 40),
-                    title: RichText(
-                      text: const TextSpan(
-                        style: TextStyle(fontSize: 16, color: Colors.black),
-                        children: [
-                          TextSpan(text: "PLA - 200g - "),
-                          TextSpan(
-                            text: "Blue",
-                            style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
-                          ),
-                        ],
+                  // Loop through the new inventoryAlerts list
+                  ...inventoryAlerts.map((alert) {
+                    // Split the name for styling, e.g., "PLA - Blue"
+                    final parts = alert['name'].split(' - ');
+                    // Final part is the color name (e.g., "Blue")
+                    final colorName = parts.length > 1 ? parts.last : '';
+                    // Remaining part is the primary product/material name (e.g., "PLA")
+                    final primaryName = parts.length > 1 ? parts.sublist(0, parts.length - 1).join(' - ') : parts[0];
+
+                    return ListTile(
+                      leading: Image.asset(alert['asset'], width: 40, height: 40),
+                      title: RichText(
+                        text: TextSpan(
+                          style: const TextStyle(fontSize: 16, color: Colors.black),
+                          children: [
+                            TextSpan(text: "$primaryName - "),
+                            TextSpan(
+                              text: colorName,
+                              style: TextStyle(color: alert['color'], fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    subtitle: const Text("In stock"),
-                  ),
-                  ListTile(
-                    leading: Image.asset('assets/red.png', width: 40, height: 40),
-                    title: RichText(
-                      text: const TextSpan(
-                        style: TextStyle(fontSize: 16, color: Colors.black),
-                        children: [
-                          TextSpan(text: "ABS - 150g - "),
-                          TextSpan(
-                            text: "Red",
-                            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                      subtitle: Text(alert['subtitle']),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+                      // Navigation to MaterialDetails, passing all unique data
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MaterialDetails(
+                              itemName: alert['name'],
+                              initialQuantity: alert['quantity'],
+                              unit: alert['unit'], // Pass the unique unit (e.g., "grams")
+                            ),
                           ),
-                        ],
-                      ),
-                    ),
-                    subtitle: const Text("Low stock"),
-                  ),
+                        );
+                      },
+                    );
+                  }).toList(),
                 ],
               ),
             ),
