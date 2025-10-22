@@ -45,7 +45,7 @@ class _DashboardBodyState extends State<DashboardBody> {
     {"title": "Order Management", "page": const OrdersPage()},
     {"title": "Inventory Management", "page": const InventoryPage()},
     {"title": "Update Category", "page": const UpdateCategoryPage()},
-    {"title": "Suggestion Categories", "page": const SuggestionsPage()},
+    {"title": "Suggestion Categories", "page": const CustomerSuggestionsPage()},
   ];
 
   @override
