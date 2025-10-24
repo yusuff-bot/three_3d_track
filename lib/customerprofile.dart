@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'ResetPasswordPage.dart'; // Your ResetPasswordPage
 import 'login.dart';
+import 'myaccount.dart';
 
 class SettingsPage extends StatelessWidget {
   final String userName;
@@ -81,6 +82,10 @@ class SettingsPage extends StatelessWidget {
                   icon: const Icon(Icons.edit),
                   onPressed: () {
                     // Could open edit profile screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AccountScreen()),
+                    );
                   },
                 ),
               ),
