@@ -1,37 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'customize.dart'; // Import the customize page
+import 'product_model.dart'; // Import the Product model
 
-class productdetail extends StatefulWidget {
-  final String productName;
-  final String productPrice;
-  final String productDescription;
-  final List<String> images;
-  final String? videoUrl;
+class ProductDetail extends StatefulWidget {
+  final Product product;
 
-  const productdetail({
+  ProductDetail({
     super.key,
-    required this.productName,
-    required this.productPrice,
-    required this.productDescription,
-    required this.images,
-    this.videoUrl,
+    required this.product,
   });
 
   @override
-  State<productdetail> createState() => _productdetailState();
+  State<ProductDetail> createState() => _ProductDetailState();
 }
 
-class _productdetailState extends State<productdetail> {
+class _ProductDetailState extends State<ProductDetail> {
   VideoPlayerController? _controller;
 
   @override
   void initState() {
     super.initState();
-    if (widget.videoUrl != null) {
-      _controller = VideoPlayerController.network(widget.videoUrl!)
+    final videoUrl = widget.product.videoUrl;
+    if (videoUrl != null && videoUrl.isNotEmpty) {
+      _controller = VideoPlayerController.network(videoUrl)
         ..initialize().then((_) {
-          setState(() {});
+          if (mounted) setState(() {});
         });
     }
   }
@@ -44,9 +38,10 @@ class _productdetailState extends State<productdetail> {
 
   @override
   Widget build(BuildContext context) {
+    final product = widget.product;
+
     return Scaffold(
       backgroundColor: Colors.white,
-
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0.5,
@@ -69,7 +64,7 @@ class _productdetailState extends State<productdetail> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Text(
-                "Home > Non-Electronic Products > Home Decor > ${widget.productName}",
+                "Home > Non-Electronic Products > Home Decor > ${product.name}",
                 style: TextStyle(color: Colors.grey[600], fontSize: 13),
               ),
             ),
@@ -82,28 +77,42 @@ class _productdetailState extends State<productdetail> {
                   height: 250,
                   width: double.infinity,
                   color: Colors.grey[200],
-                  child: widget.videoUrl != null &&
+                  child: (product.videoUrl != null &&
                       _controller != null &&
-                      _controller!.value.isInitialized
+                      _controller!.value.isInitialized)
                       ? AspectRatio(
                     aspectRatio: _controller!.value.aspectRatio,
                     child: VideoPlayer(_controller!),
                   )
                       : Image.asset(
-                    widget.images.first,
+                    product.imageUrls.isNotEmpty
+                        ? product.imageUrls.first
+                        : "assets/placeholder.png",
                     fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Icon(Icons.broken_image, size: 40),
+                    ),
                   ),
                 ),
-                if (widget.videoUrl != null)
+                if (product.videoUrl != null &&
+                    product.videoUrl!.isNotEmpty &&
+                    _controller != null)
                   Container(
                     decoration: const BoxDecoration(
                       color: Colors.black54,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.play_arrow,
-                      color: Colors.white,
-                      size: 48,
+                    child: IconButton(
+                      icon: const Icon(Icons.play_arrow,
+                          color: Colors.white, size: 48),
+                      onPressed: () {
+                        if (_controller!.value.isPlaying) {
+                          _controller!.pause();
+                        } else {
+                          _controller!.play();
+                        }
+                        setState(() {});
+                      },
                     ),
                   ),
               ],
@@ -111,34 +120,35 @@ class _productdetailState extends State<productdetail> {
 
             // Image Gallery
             const SizedBox(height: 12),
-            SizedBox(
-              height: 160,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: widget.images.length,
-                itemBuilder: (context, index) {
-                  return Container(
-                    margin: const EdgeInsets.only(right: 12),
-                    width: 200,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      image: DecorationImage(
-                        image: AssetImage(widget.images[index]),
-                        fit: BoxFit.cover,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+            if (product.imageUrls.isNotEmpty)
+              SizedBox(
+                height: 160,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: product.imageUrls.length,
+                  itemBuilder: (context, index) {
+                    return Container(
+                      margin: const EdgeInsets.only(right: 12),
+                      width: 200,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        image: DecorationImage(
+                          image: AssetImage(product.imageUrls[index]),
+                          fit: BoxFit.cover,
                         ),
-                      ],
-                    ),
-                  );
-                },
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
 
             // Product Details Section
             Padding(
@@ -148,7 +158,7 @@ class _productdetailState extends State<productdetail> {
                 children: [
                   // Product Name
                   Text(
-                    widget.productName,
+                    product.name,
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -158,7 +168,7 @@ class _productdetailState extends State<productdetail> {
 
                   // Price
                   Text(
-                    "Starts at ${widget.productPrice}",
+                    "Starts at ₹${product.price}",
                     style: const TextStyle(
                       color: Colors.grey,
                       fontSize: 16,
@@ -169,7 +179,9 @@ class _productdetailState extends State<productdetail> {
 
                   // Description
                   Text(
-                    widget.productDescription,
+                    product.description.isNotEmpty
+                        ? product.description
+                        : "No description available.",
                     style: const TextStyle(
                       fontSize: 16,
                       color: Colors.black87,
@@ -189,14 +201,12 @@ class _productdetailState extends State<productdetail> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => customize(
-                                productName: widget.productName,
-                                productImage: widget.images.first,
-                                availableColors: [
-                                  Colors.red,
-                                  Colors.blue,
-                                  Colors.green
-                                ],
-                                availableSizes: ["S", "M", "L", "XL"],
+                                productName: product.name,
+                                productImage: product.imageUrls.isNotEmpty
+                                    ? product.imageUrls.first
+                                    : "assets/placeholder.png",
+                                availableColors: product.availableColors,
+                                availableSizes: product.availableSizes,
                               ),
                             ),
                           );
@@ -220,7 +230,14 @@ class _productdetailState extends State<productdetail> {
 
                       // Place Order Button
                       ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Order placed successfully!"),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.lightBlue,
                           padding: const EdgeInsets.symmetric(
@@ -230,7 +247,7 @@ class _productdetailState extends State<productdetail> {
                           ),
                         ),
                         child: const Text(
-                          "Place order",
+                          "Place Order",
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
