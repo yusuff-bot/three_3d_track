@@ -135,14 +135,12 @@ class Welcome extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (context) => const TermsAndConditionsPage(
-                              userName: "Guest", // ✅ Fix: pass username
-                            ),
+                            requireAgreement: false),
                           ),
                         );
                       },
                       child: RichText(
-                        textAlign: TextAlign.center,
-                        text: const TextSpan(
+                        textAlign: TextAlign.center, text: const TextSpan(
                           style: TextStyle(
                             fontSize: 13,
                             color: Color(0xFF9CA3AF), // light gray
