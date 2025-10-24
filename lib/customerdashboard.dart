@@ -29,14 +29,6 @@ class DashboardPage extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black),
-            onPressed: () {
-              // Navigate to cart page if available
-            },
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Column(

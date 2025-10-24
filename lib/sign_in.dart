@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login.dart';
+import 'term_page.dart'; // ✅ Unified T&C page
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -19,7 +20,8 @@ class _SignUpPageState extends State<SignUpPage> {
 
   bool _obscurePassword = true;
   bool _showPasswordRule = false;
-  bool _isLoading = false; // to show loading during signup
+  bool _isLoading = false;
+  bool _agreedToTerms = false; // ✅ Track T&C agreement
 
   @override
   void initState() {
@@ -31,26 +33,29 @@ class _SignUpPageState extends State<SignUpPage> {
     });
   }
 
-  // Function to sign up user
   Future<void> _signUpUser() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_agreedToTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You must agree to Terms & Conditions")),
+      );
+      return;
+    }
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // 1️⃣ Create user with email & password
       UserCredential userCredential =
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      //  Save extra user info in Firestore inside "users" collection
       await FirebaseFirestore.instance
-          .collection('users') // collection name
-          .doc(userCredential.user!.uid) // document ID = UID
+          .collection('users')
+          .doc(userCredential.user!.uid)
           .set({
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
@@ -59,7 +64,6 @@ class _SignUpPageState extends State<SignUpPage> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // 3️⃣ Show success message & navigate to Login page
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Sign Up Successful!')),
@@ -144,8 +148,9 @@ class _SignUpPageState extends State<SignUpPage> {
                     filled: true,
                     fillColor: const Color(0xFFF0F2F5),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -169,8 +174,9 @@ class _SignUpPageState extends State<SignUpPage> {
                     filled: true,
                     fillColor: const Color(0xFFF0F2F5),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -197,8 +203,9 @@ class _SignUpPageState extends State<SignUpPage> {
                     filled: true,
                     fillColor: const Color(0xFFF0F2F5),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -252,8 +259,9 @@ class _SignUpPageState extends State<SignUpPage> {
                     filled: true,
                     fillColor: const Color(0xFFF0F2F5),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -265,7 +273,36 @@ class _SignUpPageState extends State<SignUpPage> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 16),
+
+                // ✅ T&C Checkbox
+                Row(children: [
+                    Checkbox(
+                      value: _agreedToTerms,
+                      onChanged: (val) async {
+                        if (val == true) {
+                          bool? agreed = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const TermsAndConditionsPage(
+                                requireAgreement: true,
+                              ),
+                            ),
+                          );
+                          if (agreed != null && agreed) {
+                            setState(() => _agreedToTerms = true);
+                          }
+                        } else {
+                          setState(() => _agreedToTerms = false);
+                        }
+                      },
+                    ),
+                    const Expanded(
+                        child: Text("I agree to the Terms & Conditions")),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
 
                 // Sign Up Button
                 SizedBox(
@@ -275,13 +312,10 @@ class _SignUpPageState extends State<SignUpPage> {
                       backgroundColor: const Color(0xFF1AB3E6),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
-                      elevation: 0,
                     ),
                     onPressed: _isLoading ? null : _signUpUser,
                     child: _isLoading
-                        ? const CircularProgressIndicator(
-                      color: Colors.white,
-                    )
+                        ? const CircularProgressIndicator(color: Colors.white)
                         : const Text(
                       "Sign Up",
                       style: TextStyle(
@@ -294,19 +328,21 @@ class _SignUpPageState extends State<SignUpPage> {
 
                 const SizedBox(height: 24),
 
-                // Footer: Already have account?
+                // Already have account
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
                       "Already have an account? ",
-                      style: TextStyle(fontSize: 14, color: Color(0xFF638087)),
+                      style:
+                      TextStyle(fontSize: 14, color: Color(0xFF638087)),
                     ),
                     GestureDetector(
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const Login()),
+                          MaterialPageRoute(
+                              builder: (context) => const Login()),
                         );
                       },
                       child: const Text(

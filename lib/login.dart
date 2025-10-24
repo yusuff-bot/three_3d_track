@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'sign_in.dart';
 import 'forgetpassword.dart';
 import 'customerdashboard.dart';
-import 'term_page.dart'; // ✅ IMPORT
+import 'term_page.dart'; // ✅ Unified T&C page
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -22,7 +22,6 @@ class _LoginState extends State<Login> {
   bool _rememberMe = false;
   bool _obscurePassword = true;
   bool _isLoading = false;
-  bool _termsAccepted = false; // ✅ NEW VARIABLE
 
   @override
   void initState() {
@@ -30,7 +29,6 @@ class _LoginState extends State<Login> {
     _loadRememberedLogin();
   }
 
-  // ✅ Load saved login credentials if "Remember Me" was checked
   Future<void> _loadRememberedLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final rememberMe = prefs.getBool('rememberMe') ?? false;
@@ -45,7 +43,6 @@ class _LoginState extends State<Login> {
     }
   }
 
-  // Help email launcher
   Future<void> _launchEmail() async {
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
@@ -62,19 +59,7 @@ class _LoginState extends State<Login> {
     }
   }
 
-  // ✅ Login User (with T&C check)
   Future<void> _loginUser({bool autoLogin = false}) async {
-    if (!_termsAccepted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            '❌ Login cannot be accepted until you accept Terms & Conditions.',
-          ),
-        ),
-      );
-      return;
-    }
-
     if (!autoLogin && !_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -109,10 +94,11 @@ class _LoginState extends State<Login> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => DashboardPage(
-              username: name,
-              userEmail: email!,
-            ),
+            builder: (context) =>
+                DashboardPage(
+                  username: name,
+                  userEmail: email!,
+                ),
           ),
         );
       }
@@ -162,38 +148,7 @@ class _LoginState extends State<Login> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.help_outline, color: Colors.grey),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                          title: const Text("Need Help?"),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text("For assistance, contact:"),
-                              const SizedBox(height: 8),
-                              GestureDetector(
-                                onTap: _launchEmail,
-                                child: const Text(
-                                  "3dtrack162914@gmail.com",
-                                  style: TextStyle(
-                                    color: Color(0xFF1AB3E6),
-                                    decoration: TextDecoration.underline,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          actions: [
-                            TextButton(
-                              child: const Text("OK"),
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                    onPressed: _launchEmail,
                   ),
                 ],
               ),
@@ -288,7 +243,6 @@ class _LoginState extends State<Login> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Remember Me + Forgot Password
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -327,51 +281,6 @@ class _LoginState extends State<Login> {
                       ],
                     ),
 
-                    // ✅ Terms and Conditions checkbox
-                    Row(
-                      children: [
-                        Checkbox(
-                          activeColor: const Color(0xFF1AB3E6),
-                          value: _termsAccepted,
-                          onChanged: (value) {
-                            setState(() {
-                              _termsAccepted = value!;
-                            });
-                          },
-                        ),
-                        Expanded(
-                          child: Row(
-                            children: [
-                              const Text("I accept the "),
-                              GestureDetector(
-                                onTap: () {
-                                  // ✅ FIX: Pass the entered email as username
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          TermsAndConditionsPage(
-                                            userName:
-                                            _emailController.text.trim().isEmpty
-                                                ? "User"
-                                                : _emailController.text.trim(),
-                                          ),
-                                    ),
-                                  );
-                                },
-                                child: const Text(
-                                  "Terms & Conditions",
-                                  style: TextStyle(
-                                    color: Color(0xFF1AB3E6),
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 20),
 
                     // Login button
@@ -423,6 +332,30 @@ class _LoginState extends State<Login> {
                           ),
                         ),
                       ],
+                    ),
+
+                    // ✅ Clickable Terms link (read-only)
+                    const SizedBox(height: 10),
+                    Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                              TermsAndConditionsPage(
+                                  requireAgreement: false),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          "Read Terms & Conditions",
+                          style: TextStyle(
+                            color: Color(0xFF1AB3E6),
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),

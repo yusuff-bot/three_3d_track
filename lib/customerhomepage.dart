@@ -4,6 +4,8 @@ import 'customerprofile.dart';
 import 'homedecor.dart';
 import 'accessories.dart';
 import 'search.dart';
+import 'product_model.dart';
+import 'productdetail.dart';
 
 class CustomerHomePage extends StatefulWidget {
   final String userName;
@@ -28,8 +30,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   void initState() {
     super.initState();
     _pages = [
-      _HomeTab(),
-      const SearchPage(),
+      _HomeTab(userName: widget.userName, userEmail: widget.userEmail),
+      SearchPage(userName: widget.userName, userEmail: widget.userEmail),
       const CartPage(),
       SettingsPage(userName: widget.userName, userEmail: widget.userEmail),
     ];
@@ -64,6 +66,11 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
 // ------------------- Home Tab Widget -------------------
 
 class _HomeTab extends StatelessWidget {
+  final String userName;
+  final String userEmail;
+
+  _HomeTab({super.key, required this.userName, required this.userEmail});
+
   final List<Map<String, String>> categories = [
     {"name": "Home Decor", "image": "assets/decor.png"},
     {"name": "Art", "image": "assets/art.png"},
@@ -73,14 +80,29 @@ class _HomeTab extends StatelessWidget {
     {"name": "Other", "image": "assets/other.png"},
   ];
 
-  final List<Map<String, String>> featuredProducts = [
-    {"name": "Modern Vase", "price": "₹1200", "image": "assets/vase.png"},
-    {"name": "Geometric Lamp", "price": "₹1500", "image": "assets/lmp.png"},
-    {"name": "Custom iPhone", "price": "₹900", "image": "assets/phone.png"},
-    {"name": "Toy", "price": "₹2000", "image": "assets/toy.png"},
-  ];
+  Future<List<Product>> _fetchFeaturedProducts() async {
+    await Future.delayed(const Duration(milliseconds: 700));
 
-  _HomeTab({super.key});
+    final List<Map<String, dynamic>> hardcodedData = [
+      {"id": "mv001", "name": "Modern Vase", "price": "₹1200", "image": "assets/vase.png"},
+      {"id": "gl001", "name": "Geometric Lamp", "price": "₹1500", "image": "assets/lmp.png"},
+      {"id": "ci001", "name": "Custom iPhone", "price": "₹900", "image": "assets/phone.png"},
+      {"id": "t001", "name": "Toy", "price": "₹2000", "image": "assets/toy.png"},
+    ];
+
+    return hardcodedData.map((data) {
+      return Product(
+        id: data['id']!,
+        name: data['name']!,
+        price: data['price']!,
+        description: "",
+        imageUrls: [data['image']!],
+        videoUrl: null,
+        availableColors: [],
+        availableSizes: [],
+      );
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +128,12 @@ class _HomeTab extends StatelessWidget {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const SearchPage()),
+                    MaterialPageRoute(
+                      builder: (_) => SearchPage(
+                        userName: userName,
+                        userEmail: userEmail,
+                      ),
+                    ),
                   );
                 },
                 child: IgnorePointer(
@@ -210,64 +237,91 @@ class _HomeTab extends StatelessWidget {
             const SizedBox(height: 8),
             SizedBox(
               height: 220,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: featuredProducts.length,
-                itemBuilder: (context, index) {
-                  final product = featuredProducts[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: Container(
-                      width: 160,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.3),
-                            blurRadius: 5,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            height: 120,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                              color: Colors.grey[200],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                              child: Image.asset(
-                                product['image']!,
-                                fit: BoxFit.cover,
+              child: FutureBuilder<List<Product>>(
+                future: _fetchFeaturedProducts(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return const Center(child: Text("Error loading featured products."));
+                  }
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text("No featured products available."));
+                  }
+
+                  final featuredProducts = snapshot.data!;
+
+                  return ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    itemCount: featuredProducts.length,
+                    itemBuilder: (context, index) {
+                      final product = featuredProducts[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ProductDetail(product: product),
                               ),
+                            );
+                          },
+                          child: Container(
+                            width: 160,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.3),
+                                  blurRadius: 5,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  height: 120,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                    color: Colors.grey[200],
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                    child: Image.asset(
+                                      product.imageUrls.first,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    product.name,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  child: Text(
+                                    product.price,
+                                    style: const TextStyle(fontSize: 13, color: Colors.green),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text(
-                              product['name']!,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(
-                              product['price']!,
-                              style: const TextStyle(fontSize: 13, color: Colors.green),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),

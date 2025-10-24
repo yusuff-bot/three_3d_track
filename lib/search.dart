@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'customerhomepage.dart';
 import 'searchresult.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key});
+  final String userName;
+  final String userEmail;
+
+  const SearchPage({super.key, required this.userName, required this.userEmail});
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -52,7 +56,18 @@ class _SearchPageState extends State<SearchPage> {
         backgroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            // Navigate back to CustomerHomePage instead of popping
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CustomerHomePage(
+                  userName: widget.userName,
+                  userEmail: widget.userEmail,
+                ),
+              ),
+            );
+          },
         ),
         title: TextField(
           controller: _controller,

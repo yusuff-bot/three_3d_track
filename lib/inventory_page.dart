@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'ownerdashboard.dart';
-import 'perproductdetail.dart'; // <<< 1. IMPORT THE DETAIL SCREEN
+import 'perproductdetail.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});

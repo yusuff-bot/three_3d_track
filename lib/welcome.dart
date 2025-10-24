@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'login.dart';
 import 'sign_in.dart';
 import 'owners_login.dart';
-import 'term_page.dart';
 
 class Welcome extends StatelessWidget {
   const Welcome({super.key});
@@ -128,41 +127,6 @@ class Welcome extends StatelessWidget {
                 // 🔹 Footer Links
                 Column(
                   children: [
-                    // 🔹 Terms & Privacy Policy
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const TermsAndConditionsPage(
-                              userName: "Guest", // ✅ Fix: pass username
-                            ),
-                          ),
-                        );
-                      },
-                      child: RichText(
-                        textAlign: TextAlign.center,
-                        text: const TextSpan(
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF9CA3AF), // light gray
-                          ),
-                          children: [
-                            TextSpan(text: "By continuing, you agree to our "),
-                            TextSpan(
-                              text: "Terms & Privacy Policy",
-                              style: TextStyle(
-                                decoration: TextDecoration.underline, // underline only this part
-                              ),
-                            ),
-                            TextSpan(text: "."),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
                     // 🔹 Owner Login
                     GestureDetector(
                       onTap: () {
