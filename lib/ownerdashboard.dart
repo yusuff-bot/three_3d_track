@@ -64,7 +64,7 @@ final List<Map<String, dynamic>> inventoryAlerts = [
 ];
 
 final List<Map<String, dynamic>> quickLinks = [
-{"title": "Order Management", "page": const OrdersPage()},
+{"title": "Order Management", "page": const OrderssPage()},
 {"title": "Inventory Management", "page": const InventoryPage()},
 {"title": "Update Category", "page": const UpdateCategoryPage()},
 {"title": "Suggestion Categories", "page": const CustomerSuggestionsPage()},
@@ -114,7 +114,7 @@ trailing: const Icon(Icons.arrow_forward_ios, size: 18),
 onTap: () {
 Navigator.push(
 context,
-MaterialPageRoute(builder: (_) => const OrdersPage()),
+MaterialPageRoute(builder: (_) => const OrderssPage()),
 );
 },
 ),
@@ -294,7 +294,7 @@ void initState() {
 super.initState();
 _pages = [
 DashboardBody(username: widget.username),
-const OrdersPage(),
+const OrderssPage(),
 const InventoryPage(),
 const ExpenseManagementPage(),
 ];
