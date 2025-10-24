@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'cartpage.dart';
 
 class customize extends StatefulWidget {
   final String productName;
@@ -110,6 +111,49 @@ class _customizeState extends State<customize> {
       default:
         return 1.0;
     }
+  }
+  void _addToCart() {
+    if (selectedColor == null || selectedSize == null) {
+      // Show a snackbar if required fields are missing
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please select a color and a size to add to cart."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // 2. Create the customized item object
+    final Map<String, dynamic> customizedItem = {
+      'productName': widget.productName,
+      'baseImage': widget.productImage,
+      'selectedColor': selectedColor!.value, // Storing Color as int value
+      'selectedSize': selectedSize,
+      'uploadedDesignPath': uploadedDesign?.path, // Nullable
+      'quantity': 1, // Default quantity
+      // In a real app, you'd calculate final price based on size/material here
+    };
+
+    // 3. Simulated Add to Cart Logic (Replace with real Firebase/State Management)
+    debugPrint('--- Item Added to Cart ---');
+    debugPrint('Product: ${customizedItem['productName']}');
+    debugPrint('Size: ${customizedItem['selectedSize']}');
+    debugPrint('Color: ${customizedItem['selectedColor']}');
+    if (customizedItem['uploadedDesignPath'] != null) {
+      debugPrint('Custom Design: YES');
+    }
+
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("${widget.productName} added to cart!"),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    // Optionally navigate to the CartPage
+    // Navigator.push(context, MaterialPageRoute(builder: (_) => const CartPage()));
   }
 
   @override
@@ -240,7 +284,7 @@ class _customizeState extends State<customize> {
           ),
           const SizedBox(height: 40),
           ElevatedButton(
-            onPressed: () {},
+              onPressed: _addToCart,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.lightBlue,
               padding: const EdgeInsets.symmetric(vertical: 16),

@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
 
 class CartPage extends StatefulWidget {
-  const CartPage({super.key});
+  final List<Map<String, dynamic>>? items; // Optional data passed from other pages
+
+  const CartPage({super.key, this.items});
 
   @override
   State<CartPage> createState() => _CartPageState();
 }
 
 class _CartPageState extends State<CartPage> {
-  // Sample cart data
-  final List<Map<String, dynamic>> cartItems = [
-    {"name": "Product 1", "price": 1200, "quantity": 1, "image": "assets/product1.png"},
-    {"name": "Product 2", "price": 1500, "quantity": 2, "image": "assets/product2.png"},
-    {"name": "Product 3", "price": 900, "quantity": 1, "image": "assets/product3.png"},
-  ];
+  late List<Map<String, dynamic>> cartItems;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Use passed items if available, else default data
+    cartItems = widget.items ?? [
+      {"name": "Product 1", "price": 1200, "quantity": 1, "image": "assets/product1.png"},
+      {"name": "Product 2", "price": 1500, "quantity": 2, "image": "assets/product2.png"},
+      {"name": "Product 3", "price": 900, "quantity": 1, "image": "assets/product3.png"},
+    ];
+  }
 
   int get totalPrice {
     return cartItems.fold(
@@ -21,7 +30,6 @@ class _CartPageState extends State<CartPage> {
           (sum, item) => sum + (item["price"] as int) * (item["quantity"] as int),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -63,11 +71,21 @@ class _CartPageState extends State<CartPage> {
                             color: Colors.grey[200],
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Center(
-                            child: Text(
-                              "Image", // Replace with Image.asset(item['image'])
-                              style: TextStyle(color: Colors.grey),
+                          child: item['image'] != null
+                              ? ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.asset(
+                              item['image'],
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Center(
+                                  child: Icon(Icons.image_not_supported, color: Colors.grey),
+                                );
+                              },
                             ),
+                          )
+                              : const Center(
+                            child: Icon(Icons.image, color: Colors.grey),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -143,7 +161,9 @@ class _CartPageState extends State<CartPage> {
                     Text(
                       "₹$totalPrice",
                       style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green),
                     ),
                   ],
                 ),
@@ -159,11 +179,17 @@ class _CartPageState extends State<CartPage> {
                       ),
                     ),
                     onPressed: () {
-                      // Implement checkout logic
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Proceeding to checkout..."),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
                     },
                     child: const Text(
                       "Checkout",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),

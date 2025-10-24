@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'productdetail.dart';
+import 'product_model.dart';
+
 
 class SearchResultsPage extends StatelessWidget {
   final String searchQuery;
@@ -80,18 +82,23 @@ class SearchResultsPage extends StatelessWidget {
               itemCount: results.length,
               itemBuilder: (context, index) {
                 final product = results[index];
+                final selectedProduct = Product(
+                  id: index.toString(),
+                  name: product['name'] ?? 'Unknown Product',
+                  price: product['price'] ?? '0',
+                  description:
+                  "3D printed, unique modern design. Perfect for decoration or gifting.",
+                  imageUrls: [product['image'] ?? 'assets/placeholder.png'],
+                  videoUrl: '',
+                  availableColors: [],
+                  availableSizes: [],
+                );
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => productdetail(
-                          productName: product['name']!,
-                          productPrice: product['price'] ?? "₹0",
-                          productDescription:
-                          "3D printed, unique modern design. Perfect for decoration or gifting.",
-                          images: [product['image']!],
-                        ),
+                        builder: (_) => ProductDetail(product: selectedProduct),
                       ),
                     );
                   },
