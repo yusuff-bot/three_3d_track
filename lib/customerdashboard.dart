@@ -6,7 +6,11 @@ class DashboardPage extends StatelessWidget {
   final String username;
   final String userEmail;
 
-  const DashboardPage({super.key, required this.username, required this.userEmail});
+  const DashboardPage({
+    super.key,
+    required this.username,
+    required this.userEmail,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -61,12 +65,9 @@ class DashboardPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: const Text(
                 "Your journey into the world of custom 3D products begins now. "
-                    "Explore our catalog and bring your ideas to life.",
+                "Explore our catalog and bring your ideas to life.",
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
             ),
             const SizedBox(height: 40),
@@ -81,10 +82,7 @@ class DashboardPage extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(24),
-                  child: Image.asset(
-                    'assets/logo1.png',
-                    fit: BoxFit.cover,
-                  ),
+                  child: Image.asset('assets/logo1.png', fit: BoxFit.cover),
                 ),
               ),
             ),
@@ -103,11 +101,16 @@ class DashboardPage extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
+                    // Navigate to the full customer home page which owns
+                    // the BottomNavigationBar. Previously this pushed
+                    // HomeTab directly (a bare widget) which has no
+                    // BottomNavigationBar and caused the navigation bar
+                    // to be missing.
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => HomeTab(
-                          userName: username, // use lowercase 'username'
+                        builder: (context) => CustomerHomePage(
+                          userName: username,
                           userEmail: userEmail,
                         ),
                       ),
