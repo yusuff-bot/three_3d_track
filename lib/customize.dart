@@ -1,30 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'cartpage.dart';
 
-class customize extends StatefulWidget {
+class Customize extends StatefulWidget {
   final String productName;
   final String productImage;
   final List<Color> availableColors;
   final List<String> availableSizes;
+  final String? modelUrl; // 3D model URL (optional)
 
-  const customize({
+  const Customize({
     super.key,
     required this.productName,
     required this.productImage,
     required this.availableColors,
     required this.availableSizes,
+    this.modelUrl,
   });
 
   @override
-  State<customize> createState() => _customizeState();
+  State<Customize> createState() => _CustomizeState();
 }
 
-class _customizeState extends State<customize> {
+class _CustomizeState extends State<Customize> {
   Color? selectedColor;
   String? selectedSize;
+  int quantity = 1;
   File? uploadedDesign;
+  bool show3DModel = true;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.availableColors.isNotEmpty) {
+      selectedColor = widget.availableColors.first;
+    }
+    if (widget.availableSizes.isNotEmpty) {
+      selectedSize = widget.availableSizes.first;
+    }
+  }
 
   Future<void> pickDesign() async {
     final ImagePicker picker = ImagePicker();
@@ -112,48 +128,44 @@ class _customizeState extends State<customize> {
         return 1.0;
     }
   }
+
+  void _incrementQuantity() => setState(() => quantity++);
+  void _decrementQuantity() {
+    if (quantity > 1) setState(() => quantity--);
+  }
+
   void _addToCart() {
     if (selectedColor == null || selectedSize == null) {
-      // Show a snackbar if required fields are missing
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please select a color and a size to add to cart."),
+          content: Text("Please select a color and a size."),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    // 2. Create the customized item object
-    final Map<String, dynamic> customizedItem = {
+    final customizedItem = {
       'productName': widget.productName,
       'baseImage': widget.productImage,
-      'selectedColor': selectedColor!.value, // Storing Color as int value
+      'selectedColor': selectedColor!.value,
       'selectedSize': selectedSize,
-      'uploadedDesignPath': uploadedDesign?.path, // Nullable
-      'quantity': 1, // Default quantity
-      // In a real app, you'd calculate final price based on size/material here
+      'uploadedDesignPath': uploadedDesign?.path,
+      'quantity': quantity,
     };
 
-    // 3. Simulated Add to Cart Logic (Replace with real Firebase/State Management)
     debugPrint('--- Item Added to Cart ---');
     debugPrint('Product: ${customizedItem['productName']}');
     debugPrint('Size: ${customizedItem['selectedSize']}');
     debugPrint('Color: ${customizedItem['selectedColor']}');
-    if (customizedItem['uploadedDesignPath'] != null) {
-      debugPrint('Custom Design: YES');
-    }
+    if (customizedItem['uploadedDesignPath'] != null) debugPrint('Custom Design: YES');
 
-    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("${widget.productName} added to cart!"),
         backgroundColor: Colors.green,
       ),
     );
-
-    // Optionally navigate to the CartPage
-    // Navigator.push(context, MaterialPageRoute(builder: (_) => const CartPage()));
   }
 
   @override
@@ -181,7 +193,16 @@ class _customizeState extends State<customize> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Product Preview with Color & Size
+          // Toggle 3D / Image preview
+          if (widget.modelUrl != null && widget.modelUrl!.isNotEmpty)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => setState(() => show3DModel = !show3DModel),
+                child: Text(show3DModel ? "View Image" : "View 3D Model",
+                    style: const TextStyle(color: Colors.lightBlue)),
+              ),
+            ),
           Center(
             child: Container(
               height: 250 * scale,
@@ -193,23 +214,37 @@ class _customizeState extends State<customize> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Product Image
-                  Image.asset(
-                    widget.productImage,
-                    fit: BoxFit.contain,
-                    width: double.infinity,
-                    height: double.infinity,
-                    color: selectedColor != null
-                        ? selectedColor!.withOpacity(0.5)
-                        : null,
-                    colorBlendMode: BlendMode.modulate,
-                  ),
-                  // Uploaded Design
-                  if (uploadedDesign != null)
-                    Image.file(
-                      uploadedDesign!,
+                  if (show3DModel && widget.modelUrl != null && widget.modelUrl!.isNotEmpty)
+                  // 3D model with color overlay
+                    Stack(
+                      children: [
+                        ModelViewer(
+                          src: widget.modelUrl!,
+                          alt: widget.productName,
+                          autoRotate: true,
+                          cameraControls: true,
+                          backgroundColor: Colors.white,
+                        ),
+                        if (selectedColor != null)
+                          Container(
+                            decoration: BoxDecoration(
+                              color: selectedColor!.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                      ],
+                    )
+                  else
+                    Image.asset(
+                      widget.productImage,
                       fit: BoxFit.contain,
+                      width: double.infinity,
+                      height: double.infinity,
+                      color: selectedColor?.withOpacity(0.5),
+                      colorBlendMode: BlendMode.modulate,
                     ),
+                  if (uploadedDesign != null)
+                    Image.file(uploadedDesign!, fit: BoxFit.contain),
                 ],
               ),
             ),
@@ -218,10 +253,10 @@ class _customizeState extends State<customize> {
           Text(widget.productName,
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          const Text("Select Color",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+
+          // Colors
+          const Text("Select Color", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 10),
-          // Color options
           Row(
             children: widget.availableColors.map((color) {
               return GestureDetector(
@@ -234,9 +269,7 @@ class _customizeState extends State<customize> {
                     color: color,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: selectedColor == color
-                          ? Colors.black
-                          : Colors.transparent,
+                      color: selectedColor == color ? Colors.black : Colors.transparent,
                       width: 2,
                     ),
                   ),
@@ -245,19 +278,15 @@ class _customizeState extends State<customize> {
             }).toList(),
           ),
           const SizedBox(height: 24),
+
+          // Sizes
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Select Size",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              TextButton(
-                  onPressed: showSizeChart,
-                  child: const Text("View Size Chart",
-                      style: TextStyle(color: Colors.lightBlue)))
+              const Text("Select Size", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              TextButton(onPressed: showSizeChart, child: const Text("View Size Chart", style: TextStyle(color: Colors.lightBlue)))
             ],
           ),
-          const SizedBox(height: 10),
-          // Size options
           Wrap(
             spacing: 10,
             children: widget.availableSizes.map((size) {
@@ -270,6 +299,28 @@ class _customizeState extends State<customize> {
             }).toList(),
           ),
           const SizedBox(height: 24),
+
+          // Quantity Selector
+          Row(
+            children: [
+              const Text("Quantity:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(width: 16),
+              Container(
+                decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade400),
+                    borderRadius: BorderRadius.circular(8)),
+                child: Row(
+                  children: [
+                    IconButton(onPressed: _decrementQuantity, icon: const Icon(Icons.remove)),
+                    Text(quantity.toString(), style: const TextStyle(fontSize: 16)),
+                    IconButton(onPressed: _incrementQuantity, icon: const Icon(Icons.add)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
           ElevatedButton.icon(
             onPressed: pickDesign,
             icon: const Icon(Icons.upload),
@@ -278,25 +329,35 @@ class _customizeState extends State<customize> {
               backgroundColor: Colors.grey.shade200,
               foregroundColor: Colors.black,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
-          const SizedBox(height: 40),
-          ElevatedButton(
-              onPressed: _addToCart,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.lightBlue,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Center(
-                child: Text("Add to Cart",
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white))),
+          const SizedBox(height: 24),
+
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _addToCart,
+                  style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: Colors.grey),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: const Text("Add to Cart", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _addToCart,
+                  style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.lightBlue,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: const Text("Place Order", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                ),
+              ),
+            ],
           ),
         ]),
       ),

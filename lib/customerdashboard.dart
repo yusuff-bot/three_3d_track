@@ -106,7 +106,7 @@ class DashboardPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => CustomerHomePage(
+                        builder: (context) => HomeTab(
                           userName: username, // use lowercase 'username'
                           userEmail: userEmail,
                         ),

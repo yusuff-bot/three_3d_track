@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
-import 'customerhomepage.dart'; // replace with actual customer homepage
+import 'customerhomepage.dart'; // Make sure this points to your actual customer homepage file
 
 class TermsAndConditionsPage extends StatefulWidget {
-  final bool requireAgreement; // true for Sign Up, false for Login
-  const TermsAndConditionsPage({
-    super.key,
-    this.requireAgreement = false,
-  });
+  final String userName; // Required username/email
+  const TermsAndConditionsPage({super.key, required this.userName});
 
   @override
-  State<TermsAndConditionsPage> createState() => _TermsAndConditionsPageState();
+  State<TermsAndConditionsPage> createState() =>
+      _TermsAndConditionsPageState(); // Proper state class
 }
 
 class _TermsAndConditionsPageState extends State<TermsAndConditionsPage> {
@@ -17,11 +15,19 @@ class _TermsAndConditionsPageState extends State<TermsAndConditionsPage> {
 
   void _handleAccept() {
     if (_accepted) {
-      Navigator.pop(context, true); // return true to Sign Up page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+            builder: (context) => HomeTab(userName: widget.userName, userEmail: ""),
+            // Pass username to homepage
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("❌ You must accept Terms and Conditions to continue."),
+          content: Text(
+            "❌ Login cannot be accepted until you accept Terms and Conditions.",
+          ),
         ),
       );
     }
@@ -33,116 +39,109 @@ class _TermsAndConditionsPageState extends State<TermsAndConditionsPage> {
       appBar: AppBar(
         title: const Text("Terms & Conditions"),
         centerTitle: true,
-        backgroundColor: widget.requireAgreement
-            ? const Color(0xFF1AB3E6)
-            : const Color(0xFF0D80F2),
+        backgroundColor: const Color(0xFF0D80F2),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
             const Text(
-              " Terms & Conditions and Privacy Policy ",
+              "📜 Terms & Conditions and Privacy Policy",
               style: TextStyle(
                   fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
             ),
             const SizedBox(height: 16),
             const Text(
               """
-     Welcome to 3D Track! Before using your account, please read these Terms and Conditions carefully. By accessing or using our app, you agree to be bound by these terms.
+Welcome to our store! Before using your account, please read these Terms and Conditions carefully.
 
-1️. **Account Usage**
-- By logging in or signing up, you agree to provide accurate and truthful information.
-- You are responsible for maintaining the confidentiality of your account credentials.
-- You must not share your account with others or allow unauthorized access.
+1️⃣ **Account Usage**
+By logging in, you agree to use this platform responsibly and to provide accurate information.
 
-2. **Purchases & Orders**
-- All orders are subject to product availability, stock limitations, and store policies.
-- 3D Track is not liable for delays caused by shipping partners or third-party services.
-- Refunds, cancellations, or replacements are handled according to the seller’s policies and applicable laws.
-- Prices, promotions, and discounts are subject to change without notice.
+2️⃣ **Purchases & Orders**
+All orders placed are subject to product availability and store policies. Refunds or replacements follow the seller’s guidelines.
 
-3. **Data Privacy**
-- We collect personal data such as name, email, phone number, and order details to provide our services.
-- Data is stored securely and will not be shared with third parties without consent except as required by law.
-- You consent to receive order-related notifications, promotional emails, or updates from 3D Track.
+3️⃣ **Data Privacy**
+Your personal data (name, address, contact details) will be stored securely and used only for fulfilling your orders.
 
-4. **Payment & Security**
-- Payments are processed via secure gateways. We do not store your card details or payment credentials.
-- You must ensure sufficient funds for purchases and confirm payment details before submission.
-- Any fraudulent payment attempts will result in account suspension or legal action.
+4️⃣ **Payment Security**
+Payments are processed securely. We do not store card details or payment credentials.
 
-5. **User Conduct**
-- You agree not to misuse, manipulate, or exploit the app in any way.
-- Prohibited actions include hacking, reverse engineering, spamming, and sharing inappropriate content.
-- Users must respect the intellectual property rights of 3D Track and its partners.
+5️⃣ **User Conduct**
+You agree not to misuse or abuse the app, attempt fraud, or engage in harmful behavior.
 
-6. **Content & Intellectual Property**
-- All content, designs, and materials in the app are owned by 3D Track or its licensors.
-- You may not copy, modify, distribute, or create derivative works without explicit permission.
-- Uploaded designs or files must not infringe on third-party rights.
+6️⃣ **Liability**
+We are not responsible for delivery delays or technical issues beyond our control.
 
-7. **Liability**
-- 3D Track is not responsible for technical issues, connectivity problems, or loss of data.
-- We disclaim liability for indirect, incidental, or consequential damages arising from app use.
-- We are not liable for actions taken based on advice or information in the app.
+7️⃣ **Changes to Policy**
+We may update these terms periodically. Continued use of the app means you accept those updates.
 
-8. **Modifications & Updates**
-- Terms and conditions may change periodically. Continued use of the app constitutes acceptance of new terms.
-- The app may be updated to include new features, which could change functionality.
-
-9. **Termination*
-- 3D Track reserves the right to suspend or terminate your account for violations of these terms.
-- You may also request account deletion, subject to applicable laws and data retention policies.
-
-10. **Governing Law**
-- These terms are governed by applicable laws of your country or region.
-- Any disputes will be subject to the jurisdiction of the relevant courts.
-
-By using the 3D Track app, you acknowledge that you have read, understood, and agreed to these Terms, Conditions, and Privacy Policy. Your continued use confirms acceptance of any updates or modifications made to these terms.
-"""
-              ,
+By accepting, you agree to our Terms, Conditions, and Privacy Policy.
+              """,
               style: TextStyle(fontSize: 16, color: Colors.black87, height: 1.5),
             ),
             const SizedBox(height: 30),
 
-            // Only show checkbox and continue button for Sign Up
-            if (widget.requireAgreement) ...[
-              Row(
-                children: [
-                  Checkbox(
-                    value: _accepted,
-                    activeColor: const Color(0xFF1AB3E6),
-                    onChanged: (value) {
-                      setState(() {
-                        _accepted = value ?? false;
-                      });
-                    },
-                  ),
-                  const Expanded(
-                    child: Text(
-                      "I have read and accept the Terms and Conditions.",
-                      style: TextStyle(fontSize: 15),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1AB3E6),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  onPressed: _handleAccept,
-                  child: const Text(
-                    "Continue",
-                    style: TextStyle(fontSize: 16),
+            Row(
+              children: [
+                Checkbox(
+                  value: _accepted,
+                  activeColor: const Color(0xFF0D80F2),
+                  onChanged: (value) {
+                    setState(() {
+                      _accepted = value ?? false;
+                    });
+                  },
+                ),
+                const Expanded(
+                  child: Text(
+                    "I have read and accept the Terms and Conditions.",
+                    style: TextStyle(fontSize: 15),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D80F2),
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: _handleAccept,
+                  icon: const Icon(Icons.check),
+                  label: const Text("Accept"),
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "❌ Login cannot be accepted until you accept Terms and Conditions.",
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.close),
+                  label: const Text("Don’t Accept"),
+                ),
+              ],
+            )
           ],
         ),
       ),
