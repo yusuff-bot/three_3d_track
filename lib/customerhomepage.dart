@@ -10,7 +10,6 @@ import 'productdetail.dart';
 class CustomerHomePage extends StatefulWidget {
   final String userName;
   final String userEmail;
-
   const CustomerHomePage({
     super.key,
     required this.userName,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:intl/intl.dart';
+import 'ownerdashboard.dart'; // make sure this path is correct
 
 class OrderssPage extends StatefulWidget {
   const OrderssPage({super.key});
@@ -18,7 +20,9 @@ class _OrdersPageState extends State<OrderssPage> {
     final statusList = ["Pending", "Shipped", "Delivered", "Cancelled"];
     final random = Random();
     final day = random.nextInt(28) + 1;
-    final month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"];
+    final month = [
+      "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct"
+    ];
     final date = "${month[random.nextInt(month.length)]} $day, 2025";
     final amount = "₹${(random.nextInt(50) + 5) * 100}.00";
 
@@ -30,14 +34,40 @@ class _OrdersPageState extends State<OrderssPage> {
     };
   });
 
-  // Filter logic
+  double _getAmount(Map<String, String> order) {
+    return double.tryParse(order["amount"]!.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+  }
+
+  // Filtered orders with status, date, and amount filters
   List<Map<String, String>> get filteredOrders {
+    DateTime now = DateTime.now();
+
     List<Map<String, String>> filtered = orders.where((order) {
-      final statusMatch = statusFilter == "All" || order["status"] == statusFilter;
-      return statusMatch;
+      // STATUS filter
+      bool statusMatch = statusFilter == "All" || order["status"] == statusFilter;
+
+      // DATE filter
+      bool dateMatch = true;
+      if (dateFilter != "All") {
+        DateTime orderDate = DateFormat('MMM d, yyyy').parse(order["date"]!);
+        if (dateFilter == "Today") {
+          dateMatch = orderDate.year == now.year &&
+              orderDate.month == now.month &&
+              orderDate.day == now.day;
+        } else if (dateFilter == "This Week") {
+          int startOfWeek = now.subtract(Duration(days: now.weekday - 1)).day;
+          int endOfWeek = now.add(Duration(days: 7 - now.weekday)).day;
+          dateMatch = orderDate.isAfter(DateTime(now.year, now.month, startOfWeek - 1)) &&
+              orderDate.isBefore(DateTime(now.year, now.month, endOfWeek + 1));
+        } else if (dateFilter == "This Month") {
+          dateMatch = orderDate.year == now.year && orderDate.month == now.month;
+        }
+      }
+
+      return statusMatch && dateMatch;
     }).toList();
 
-    // Amount sort
+    // AMOUNT filter
     if (amountFilter == "Low to High") {
       filtered.sort((a, b) => _getAmount(a).compareTo(_getAmount(b)));
     } else if (amountFilter == "High to Low") {
@@ -47,13 +77,8 @@ class _OrdersPageState extends State<OrderssPage> {
     return filtered;
   }
 
-  double _getAmount(Map<String, String> order) {
-    return double.tryParse(order["amount"]!.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
-  }
-
-  // Filter dialogs
-  Future<void> _showFilterDialog(
-      String title, List<String> options, String selected, void Function(String) onSelected) async {
+  Future<void> _showFilterDialog(String title, List<String> options, String selected,
+      void Function(String) onSelected) async {
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -62,19 +87,15 @@ class _OrdersPageState extends State<OrderssPage> {
           width: double.maxFinite,
           child: ListView(
             shrinkWrap: true,
-            children: options
-                .map(
-                  (option) => RadioListTile<String>(
-                title: Text(option),
-                value: option,
-                groupValue: selected,
-                onChanged: (val) {
-                  onSelected(val!);
-                  Navigator.pop(context);
-                },
-              ),
-            )
-                .toList(),
+            children: options.map((option) => RadioListTile<String>(
+              title: Text(option),
+              value: option,
+              groupValue: selected,
+              onChanged: (val) {
+                onSelected(val!);
+                Navigator.pop(context);
+              },
+            )).toList(),
           ),
         ),
       ),
@@ -87,10 +108,19 @@ class _OrdersPageState extends State<OrderssPage> {
       MaterialPageRoute(
         builder: (_) => OrdersByStatusPage(
           status: status,
-          orders: orders.where((o) => o["status"] == status).toList(),
+          orders: filteredOrders.where((o) => o["status"] == status).toList(),
         ),
       ),
     );
+  }
+
+  // Redirect back to Owner Dashboard
+  Future<bool> _onWillPop() async {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const OwnerDashboard(username: "")),
+    );
+    return false;
   }
 
   @override
@@ -98,159 +128,155 @@ class _OrdersPageState extends State<OrderssPage> {
     final statuses = ["Pending", "Shipped", "Delivered", "Cancelled"];
     final grouped = {for (var s in statuses) s: filteredOrders.where((o) => o["status"] == s).toList()};
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Orders Overview"),
-        backgroundColor: const Color(0xFF0D80F2),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // 🔍 Search bar
-            TextField(
-              decoration: InputDecoration(
-                hintText: "Search orders...",
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            "",
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          centerTitle: true,
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              TextField(
+                decoration: InputDecoration(
+                  hintText: "Search orders...",
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            // 🧭 Filters
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    _showFilterDialog(
-                      "Status",
-                      ['All', 'Pending', 'Shipped', 'Delivered', 'Cancelled'],
-                      statusFilter,
-                          (val) => setState(() => statusFilter = val),
-                    );
-                  },
-                  child: Text("Status: $statusFilter"),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    _showFilterDialog(
-                      "Date",
-                      ['All', 'Today', 'This Week', 'This Month'],
-                      dateFilter,
-                          (val) => setState(() => dateFilter = val),
-                    );
-                  },
-                  child: Text("Date: $dateFilter"),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    _showFilterDialog(
-                      "Amount",
-                      ['All', 'Low to High', 'High to Low'],
-                      amountFilter,
-                          (val) => setState(() => amountFilter = val),
-                    );
-                  },
-                  child: Text("Amount: $amountFilter"),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+              // FILTER BUTTONS
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      _showFilterDialog(
+                        "Status",
+                        ['All', 'Pending', 'Shipped', 'Delivered', 'Cancelled'],
+                        statusFilter,
+                            (val) => setState(() => statusFilter = val),
+                      );
+                    },
+                    child: Text("Status: $statusFilter"),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      _showFilterDialog(
+                        "Date",
+                        ['All', 'Today', 'This Week', 'This Month'],
+                        dateFilter,
+                            (val) => setState(() => dateFilter = val),
+                      );
+                    },
+                    child: Text("Date: $dateFilter"),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      _showFilterDialog(
+                        "Amount",
+                        ['All', 'Low to High', 'High to Low'],
+                        amountFilter,
+                            (val) => setState(() => amountFilter = val),
+                      );
+                    },
+                    child: Text("Amount: $amountFilter"),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
 
-            // 📦 Grouped orders
-            Expanded(
-              child: ListView(
-                children: grouped.entries.map((entry) {
-                  final status = entry.key;
-                  final ordersList = entry.value;
-                  if (ordersList.isEmpty) return const SizedBox.shrink();
+              // GROUPED ORDERS LIST
+              Expanded(
+                child: ListView(
+                  children: grouped.entries.map((entry) {
+                    final status = entry.key;
+                    final ordersList = entry.value;
+                    if (ordersList.isEmpty) return const SizedBox.shrink();
 
-                  Color statusColor;
-                  switch (status) {
-                    case "Pending":
-                      statusColor = Colors.orange;
-                      break;
-                    case "Shipped":
-                      statusColor = Colors.blue;
-                      break;
-                    case "Delivered":
-                      statusColor = Colors.green;
-                      break;
-                    case "Cancelled":
-                      statusColor = Colors.red;
-                      break;
-                    default:
-                      statusColor = Colors.grey;
-                  }
+                    Color statusColor;
+                    switch (status) {
+                      case "Pending": statusColor = Colors.orange; break;
+                      case "Shipped": statusColor = Colors.blue; break;
+                      case "Delivered": statusColor = Colors.green; break;
+                      case "Cancelled": statusColor = Colors.red; break;
+                      default: statusColor = Colors.grey;
+                    }
 
-                  return GestureDetector(
-                    onTap: () => _navigateToStatus(context, status),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 🏷️ Status header
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: statusColor,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                "$status (${ordersList.length})",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: statusColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Example of a few orders preview
-                        ...ordersList.take(2).map((order) {
-                          return Card(
-                            elevation: 2,
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                            child: ListTile(
-                              title: Text("Order ${order['id']}"),
-                              subtitle: Text("${order['date']} • ${order['status']}"),
-                              trailing: Text(
-                                order['amount']!,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                        if (ordersList.length > 2)
+                    return GestureDetector(
+                      onTap: () => _navigateToStatus(context, status),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Padding(
-                            padding: const EdgeInsets.only(left: 16, top: 4),
-                            child: Text(
-                              "Tap to view all ${ordersList.length} $status orders →",
-                              style: const TextStyle(color: Colors.grey),
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: statusColor,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "$status (${ordersList.length})",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: statusColor,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        const SizedBox(height: 8),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                          ...ordersList.take(2).map((order) {
+                            return Card(
+                              elevation: 2,
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              child: ListTile(
+                                title: Text("Order ${order['id']}"),
+                                subtitle: Text("${order['date']} • ${order['status']}"),
+                                trailing: Text(
+                                  order['amount']!,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                          if (ordersList.length > 2)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 16, top: 4),
+                              child: Text(
+                                "Tap to view all ${ordersList.length} $status orders →",
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                            ),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -267,20 +293,11 @@ class OrdersByStatusPage extends StatelessWidget {
   Widget build(BuildContext context) {
     Color statusColor;
     switch (status) {
-      case "Pending":
-        statusColor = Colors.orange;
-        break;
-      case "Shipped":
-        statusColor = Colors.blue;
-        break;
-      case "Delivered":
-        statusColor = Colors.green;
-        break;
-      case "Cancelled":
-        statusColor = Colors.red;
-        break;
-      default:
-        statusColor = Colors.grey;
+      case "Pending": statusColor = Colors.orange; break;
+      case "Shipped": statusColor = Colors.blue; break;
+      case "Delivered": statusColor = Colors.green; break;
+      case "Cancelled": statusColor = Colors.red; break;
+      default: statusColor = Colors.grey;
     }
 
     return Scaffold(
