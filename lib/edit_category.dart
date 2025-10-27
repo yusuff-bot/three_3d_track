@@ -40,11 +40,16 @@ class _EditCategoryScreenState extends State<EditCategoryScreen> {
   }
 
   Future<void> _pickImage() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
     if (result != null) {
       final file = result.files.first;
       setState(() => _loading = true);
-      final ref = FirebaseStorage.instance.ref().child('categories/${file.name}');
+      final ref = FirebaseStorage.instance.ref().child(
+        'categories/${file.name}',
+      );
       await ref.putData(file.bytes!);
       final url = await ref.getDownloadURL();
       setState(() {
@@ -61,15 +66,20 @@ class _EditCategoryScreenState extends State<EditCategoryScreen> {
 
     setState(() => _loading = true);
     try {
-      await FirebaseFirestore.instance.collection('categories').doc(widget.categoryId).update({
-        'name': name,
-        'imageUrl': _imageUrl,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+      await FirebaseFirestore.instance
+          .collection('categories')
+          .doc(widget.categoryId)
+          .update({
+            'name': name,
+            'imageUrl': _imageUrl,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
       Navigator.pop(context);
     } catch (e) {
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Update failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Update failed: $e')));
     }
   }
 
@@ -79,17 +89,33 @@ class _EditCategoryScreenState extends State<EditCategoryScreen> {
       appBar: AppBar(title: const Text('Edit Category')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(children: [
-          TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Category name')),
-          const SizedBox(height: 12),
-          _imageUrl != null
-              ? Image.network(_imageUrl!, height: 120, fit: BoxFit.cover)
-              : const SizedBox(height: 120, child: Center(child: Text('No image'))),
-          const SizedBox(height: 8),
-          OutlinedButton(onPressed: _pickImage, child: Text(_imageName != null ? 'Change Image' : 'Upload Image')),
-          const SizedBox(height: 24),
-          ElevatedButton(onPressed: _loading ? null : _save, child: _loading ? const CircularProgressIndicator() : const Text('Save Changes')),
-        ]),
+        child: Column(
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Category name'),
+            ),
+            const SizedBox(height: 12),
+            _imageUrl != null
+                ? Image.network(_imageUrl!, height: 120, fit: BoxFit.cover)
+                : const SizedBox(
+                    height: 120,
+                    child: Center(child: Text('No image')),
+                  ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: _pickImage,
+              child: Text(_imageName != null ? 'Change Image' : 'Upload Image'),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _loading ? null : _save,
+              child: _loading
+                  ? const CircularProgressIndicator()
+                  : const Text('Save Changes'),
+            ),
+          ],
+        ),
       ),
     );
   }

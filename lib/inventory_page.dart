@@ -13,7 +13,6 @@ class _InventoryPageState extends State<InventoryPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // Premade products inventory
   List<Map<String, dynamic>> premadeProducts = [
     {"name": "Custom Phone Cases", "quantity": 15},
     {"name": "Personalized Keychains", "quantity": 20},
@@ -21,7 +20,6 @@ class _InventoryPageState extends State<InventoryPage>
     {"name": "Customized Coasters", "quantity": 8},
   ];
 
-  // Raw materials inventory
   List<Map<String, dynamic>> rawMaterials = [
     {"name": "PLA Filament", "quantity": 25},
     {"name": "Resin Bottles", "quantity": 18},
@@ -35,7 +33,6 @@ class _InventoryPageState extends State<InventoryPage>
     _tabController = TabController(length: 2, vsync: this);
   }
 
-  // Adjusted this to use the passed list and index to ensure state is updated correctly
   void _adjustQuantity(List<Map<String, dynamic>> list, int index, bool increase) {
     setState(() {
       if (increase) {
@@ -46,55 +43,92 @@ class _InventoryPageState extends State<InventoryPage>
     });
   }
 
+  void _showAddItemDialog() {
+    String newItemName = "";
+    int newQuantity = 1;
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Add New Item"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              decoration: const InputDecoration(labelText: "Item Name"),
+              onChanged: (val) => newItemName = val,
+            ),
+            TextField(
+              decoration: const InputDecoration(labelText: "Quantity"),
+              keyboardType: TextInputType.number,
+              onChanged: (val) {
+                newQuantity = int.tryParse(val) ?? 1;
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (newItemName.isNotEmpty) {
+                setState(() {
+                  if (_tabController.index == 0) {
+                    premadeProducts.add({
+                      "name": newItemName,
+                      "quantity": newQuantity,
+                    });
+                  } else {
+                    rawMaterials.add({
+                      "name": newItemName,
+                      "quantity": newQuantity,
+                    });
+                  }
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Add"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInventoryList(List<Map<String, dynamic>> items) {
     return ListView.builder(
       itemCount: items.length,
       padding: const EdgeInsets.all(16),
       itemBuilder: (context, index) {
         final item = items[index];
-
-        // <<< 2. WRAP CARD IN INKWELL FOR NAVIGATION
         return InkWell(
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => InventoryDetailScreen(
-                  // Pass the name of the item
                   itemName: item["name"],
-                  // Pass the current quantity
                   initialQuantity: item["quantity"],
                 ),
               ),
-              // We use .then() to update the quantity on this page
-              // after the detail screen pops, assuming the detail screen
-              // doesn't update the state directly but tells us to refresh.
-              // *NOTE: A better way is using Riverpod/Provider, but this works for simple state.*
             ).then((_) {
-              // Since the Detail Screen manages its own state and saves changes,
-              // we don't have a simple return value here. In a real app,
-              // we'd refetch data from a database. For this local list demo,
-              // you might need to adjust the logic if you want changes made in
-              // the Detail Screen to reflect here immediately.
-              // For now, this just rebuilds the list, but it won't reflect changes
-              // made in the Detail Screen unless you update the List here
-              // (e.g., passing a callback function to the detail screen).
-              setState(() {
-                // This forces a rebuild and refiltering, good practice for
-                // refreshing the list view.
-              });
+              setState(() {});
             });
           },
-          child: Card( // The rest of the card structure remains the same
+          child: Card(
             margin: const EdgeInsets.symmetric(vertical: 8),
             elevation: 3,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Product Info
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -112,8 +146,6 @@ class _InventoryPageState extends State<InventoryPage>
                       ),
                     ],
                   ),
-
-                  // Adjust buttons (for quick +/- 1 adjustments)
                   Row(
                     children: [
                       IconButton(
@@ -136,40 +168,67 @@ class _InventoryPageState extends State<InventoryPage>
     );
   }
 
+  // 🔹 Back navigation behavior: Always go to Owner Dashboard
+  Future<bool> _onWillPop() async {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const OwnerDashboard(username: 'Owner')),
+    );
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            // Navigate back to Owner Dashboard
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => OwnerDashboard(username: "")),
-            );
-          },
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0, // ✅ removes the grey box above tabs
+          title: const Text(
+            "",
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+          ),
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const OwnerDashboard(username: 'Owner')),
+              );
+            },
+          ),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(48),
+            child: Align(
+              alignment: Alignment.center,
+              child: TabBar(
+                controller: _tabController,
+                labelColor: Colors.black,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: Colors.deepPurple,
+                tabs: const [
+                  Tab(text: "Premade Products"),
+                  Tab(text: "Raw Materials"),
+                ],
+              ),
+            ),
+          ),
         ),
-        bottom: TabBar(
+        body: TabBarView(
           controller: _tabController,
-          labelColor: Colors.black,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.deepPurple,
-          tabs: const [
-            Tab(text: "Premade Products"),
-            Tab(text: "Raw Materials"),
+          children: [
+            _buildInventoryList(premadeProducts),
+            _buildInventoryList(rawMaterials),
           ],
         ),
-      ),
-
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildInventoryList(premadeProducts),
-          _buildInventoryList(rawMaterials),
-        ],
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: Colors.deepPurple,
+          onPressed: _showAddItemDialog,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }

@@ -1,4 +1,3 @@
-// manage_categories.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
@@ -6,6 +5,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'addsubcategory.dart';
 import 'edit_category.dart';
 import 'app_bottom_nav.dart';
+// platform-specific upload helper (conditional import)
+import 'src/file_upload_helper_io.dart'
+    if (dart.library.html) 'src/file_upload_helper_web.dart';
 
 class ManageCategoriesScreen extends StatefulWidget {
   const ManageCategoriesScreen({super.key});
@@ -16,8 +18,8 @@ class ManageCategoriesScreen extends StatefulWidget {
 
 class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
   final _categoryController = TextEditingController();
-  final CollectionReference _categoriesRef =
-  FirebaseFirestore.instance.collection('categories');
+  final CollectionReference _categoriesRef = FirebaseFirestore.instance
+      .collection('categories');
 
   String? _categoryImageUrl;
   String? _categoryImageName;
@@ -32,13 +34,26 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
   Future<void> _pickCategoryImage() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
+      withData: true,
     );
     if (result != null) {
       final file = result.files.first;
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('categories/${file.name}');
-      await ref.putData(file.bytes!);
+      final ref = FirebaseStorage.instance.ref().child(
+        'categories/${file.name}',
+      );
+
+      // Infer content type
+      String contentType = 'application/octet-stream';
+      final lower = file.extension?.toLowerCase() ?? file.name.toLowerCase();
+      if (lower.endsWith('png')) contentType = 'image/png';
+      if (lower.endsWith('jpg') || lower.endsWith('jpeg'))
+        contentType = 'image/jpeg';
+
+      final metadata = SettableMetadata(contentType: contentType);
+
+      // Use platform helper to upload (putFile on native, putData on web)
+      final uploadTask = uploadFileToStorage(ref, file, metadata);
+      await uploadTask.whenComplete(() {});
       final url = await ref.getDownloadURL();
       setState(() {
         _categoryImageUrl = url;
@@ -70,16 +85,14 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => AddSubCategoryScreen(
-            categoryName: name,
-            categoryId: docRef.id,
-          ),
+          builder: (context) =>
+              AddSubCategoryScreen(categoryName: name, categoryId: docRef.id),
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add category: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to add category: $e')));
     }
   }
 
@@ -99,8 +112,10 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Add New Category',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'Add New Category',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -116,7 +131,11 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                 const SizedBox(width: 8),
                 OutlinedButton(
                   onPressed: _pickCategoryImage,
-                  child: Text(_categoryImageName != null ? 'Image chosen' : 'Upload Image'),
+                  child: Text(
+                    _categoryImageName != null
+                        ? 'Image chosen'
+                        : 'Upload Image',
+                  ),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
@@ -124,19 +143,26 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00B8D4),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 14,
+                    ),
                   ),
                   child: const Text('Add'),
                 ),
               ],
             ),
             const SizedBox(height: 32),
-            const Text('Categories List',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'Categories List',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 10),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: _categoriesRef.orderBy('timestamp', descending: true).snapshots(),
+                stream: _categoriesRef
+                    .orderBy('timestamp', descending: true)
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -153,11 +179,16 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                       final doc = categories[index];
                       final categoryName = doc['name'];
                       final categoryId = doc.id;
-                      final categoryImage = doc.data().toString().contains('imageUrl') ? doc['imageUrl'] : null;
+                      final categoryImage =
+                          doc.data().toString().contains('imageUrl')
+                          ? doc['imageUrl']
+                          : null;
 
                       return ListTile(
                         leading: categoryImage != null
-                            ? CircleAvatar(backgroundImage: NetworkImage(categoryImage))
+                            ? CircleAvatar(
+                                backgroundImage: NetworkImage(categoryImage),
+                              )
                             : const CircleAvatar(child: Icon(Icons.category)),
                         title: Text(categoryName),
                         trailing: Row(

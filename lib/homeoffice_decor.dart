@@ -54,22 +54,22 @@ class _HomeOfficeDecorPageState extends State<HomeOfficeDecorPage> {
         .get();
 
     return snapshot.docs.map((doc) {
-      final data = doc.data();
+      final data = doc.data() as Map<String, dynamic>?;
       return Product(
         id: doc.id,
-        name: data['name'] ?? 'Unnamed Product',
-        price: data['price']?.toString() ?? '0',
-        description: data['description'] ?? '',
-        imageUrls: List<String>.from(data['imageUrls'] ?? []),
-        videoUrl: data['videoUrl'],
-        modelUrl: data['modelUrl'],
-        material: data['material'],
-        availableColors: (data['colors'] != null)
-            ? (data['colors'] as List)
-            .map((c) => _stringToColor(c.toString()))
-            .toList()
+        name: data?['name'] ?? 'Unnamed Product',
+        price: data?['price']?.toString() ?? '0',
+        description: data?['description'] ?? '',
+        imageUrls: List<String>.from(data?['imageUrls'] ?? []),
+        videoUrl: data?['videoUrl'],
+        modelUrl: data?['modelUrl'],
+        material: data?['material'],
+        availableColors: (data?['colors'] != null)
+            ? (data!['colors'] as List)
+                  .map((c) => _stringToColor(c.toString()))
+                  .toList()
             : [],
-        availableSizes: List<String>.from(data['sizes'] ?? []),
+        availableSizes: List<String>.from(data?['sizes'] ?? []),
       );
     }).toList();
   }
@@ -84,7 +84,9 @@ class _HomeOfficeDecorPageState extends State<HomeOfficeDecorPage> {
         title: Text(
           widget.subCategory,
           style: const TextStyle(
-              color: Colors.black, fontWeight: FontWeight.bold),
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
       ),
@@ -110,7 +112,8 @@ class _HomeOfficeDecorPageState extends State<HomeOfficeDecorPage> {
                 }
                 if (snapshot.hasError) {
                   return Center(
-                      child: Text("Error loading products: ${snapshot.error}"));
+                    child: Text("Error loading products: ${snapshot.error}"),
+                  );
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(child: Text("No products found."));
@@ -181,19 +184,21 @@ class _HomeOfficeDecorPageState extends State<HomeOfficeDecorPage> {
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(12)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
                 child: item.imageUrls.isNotEmpty
                     ? Image.network(
-                  item.imageUrls.first,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                )
+                        item.imageUrls.first,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      )
                     : Container(
-                  color: Colors.grey[300],
-                  child: const Center(
-                      child: Icon(Icons.image_not_supported, size: 40)),
-                ),
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Icon(Icons.image_not_supported, size: 40),
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 8),
@@ -205,15 +210,18 @@ class _HomeOfficeDecorPageState extends State<HomeOfficeDecorPage> {
                   Text(
                     item.name,
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 15),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "₹${item.price}",
                     style: const TextStyle(
-                        color: Colors.green,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600),
+                      color: Colors.green,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),

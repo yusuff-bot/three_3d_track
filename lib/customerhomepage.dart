@@ -4,6 +4,8 @@ import 'product_model.dart';
 import 'productdetail.dart';
 import 'homeoffice_decor.dart';
 import 'accessories.dart';
+import 'subcategories_screen.dart';
+import 'src/safe_network_image.dart';
 import 'search.dart';
 import 'customerprofile.dart';
 import 'customerorder.dart';
@@ -64,10 +66,13 @@ class _HomeTabState extends State<HomeTab> {
         .collection('categories')
         .get();
     return snapshot.docs.map((doc) {
-      final data = doc.data();
+      final data = doc.data() as Map<String, dynamic>?;
+      // Prefer new admin field 'imageUrl', fall back to legacy 'image'
+      final img = data?['imageUrl'] ?? data?['image'];
       return {
-        'name': data['name']?.toString() ?? 'Unnamed',
-        'image': data['image']?.toString() ?? 'assets/placeholder.png',
+        'id': doc.id,
+        'name': data?['name']?.toString() ?? 'Unnamed',
+        'image': img?.toString() ?? 'assets/placeholder.png',
       };
     }).toList();
   }
@@ -81,22 +86,22 @@ class _HomeTabState extends State<HomeTab> {
         .get();
 
     return snapshot.docs.map((doc) {
-      final data = doc.data();
+      final data = doc.data() as Map<String, dynamic>?;
       return Product(
         id: doc.id,
-        name: data['name'] ?? 'Unnamed Product',
-        price: data['price']?.toString() ?? '0',
-        description: data['description'] ?? '',
-        imageUrls: List<String>.from(data['imageUrls'] ?? []),
-        videoUrl: data['videoUrl'],
-        modelUrl: data['modelUrl'],
-        material: data['material'],
-        availableColors: (data['colors'] != null)
-            ? (data['colors'] as List)
+        name: data?['name'] ?? 'Unnamed Product',
+        price: data?['price']?.toString() ?? '0',
+        description: data?['description'] ?? '',
+        imageUrls: List<String>.from(data?['imageUrls'] ?? []),
+        videoUrl: data?['videoUrl'],
+        modelUrl: data?['modelUrl'],
+        material: data?['material'],
+        availableColors: (data?['colors'] != null)
+            ? (data!['colors'] as List)
                   .map((c) => _stringToColor(c.toString()))
                   .toList()
             : [],
-        availableSizes: List<String>.from(data['sizes'] ?? []),
+        availableSizes: List<String>.from(data?['sizes'] ?? []),
       );
     }).toList();
   }
@@ -143,7 +148,10 @@ class _HomeTabState extends State<HomeTab> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const SearchPage(),
+                              builder: (_) => SearchPage(
+                                userName: widget.userName,
+                                userEmail: widget.userEmail,
+                              ),
                             ),
                           );
                         },
@@ -216,24 +224,17 @@ class _HomeTabState extends State<HomeTab> {
                             final category = categories[index];
                             return GestureDetector(
                               onTap: () {
-                                final name = category['name']!.toLowerCase();
-                                if (name.contains("home")) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => HomeOfficeDecorPage(
-                                        subCategory: category['name']!,
-                                      ),
+                                // Navigate to subcategories list for this category
+                                final catId = category['id']!;
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => SubcategoriesScreen(
+                                      categoryId: catId,
+                                      categoryName: category['name']!,
                                     ),
-                                  );
-                                } else if (name.contains("accessories")) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const AccessoriesPage(),
-                                    ),
-                                  );
-                                }
+                                  ),
+                                );
                               },
                               child: Column(
                                 children: [
@@ -245,24 +246,16 @@ class _HomeTabState extends State<HomeTab> {
                                       ),
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(16),
-                                        child:
-                                            category['image']!.startsWith(
-                                              'http',
-                                            )
-                                            ? Image.network(
-                                                category['image']!,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (_, __, ___) =>
-                                                    const Icon(
-                                                      Icons.broken_image,
-                                                    ),
-                                              )
-                                            : Image.asset(
-                                                category['image']!,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (_, __, ___) =>
-                                                    const Icon(Icons.image),
-                                              ),
+                                        child: SizedBox(
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                          child: SafeNetworkImage(
+                                            image: category['image'] ?? '',
+                                            fit: BoxFit.cover,
+                                            placeholderUrl:
+                                                'https://via.placeholder.com/400x400?text=Category',
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -455,7 +448,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     super.initState();
     _pages = [
       HomeTab(userName: widget.userName, userEmail: widget.userEmail),
-      const SearchPage(),
+      // Pass user info to SearchPage so it can navigate back to the correct
+      // CustomerHomePage with the same context.
+      SearchPage(userName: widget.userName, userEmail: widget.userEmail),
       const CartPage(),
       SettingsPage(userName: widget.userName, userEmail: widget.userEmail),
     ];

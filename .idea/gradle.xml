@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GradleMigrationSettings" migrationVersion="1" />
+  <component name="GradleSettings">
+    <option name="linkedExternalProjectsSettings">
+      <GradleProjectSettings>
+        <compositeConfiguration>
+          <compositeBuild compositeDefinitionSource="SCRIPT">
+            <builds>
+              <build path="$PROJECT_DIR$/../../flutter/src/flutter/packages/flutter_tools/gradle" name="gradle">
+                <projects>
+                  <project path="$PROJECT_DIR$/../../flutter/src/flutter/packages/flutter_tools/gradle" />
+                </projects>
+              </build>
+            </builds>
+          </compositeBuild>
+        </compositeConfiguration>
+        <option name="testRunner" value="CHOOSE_PER_TEST" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$/android" />
+        <option name="gradleJvm" value="#GRADLE_LOCAL_JAVA_HOME" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$/android" />
+            <option value="$PROJECT_DIR$/android/app" />
+            <option value="$PROJECT_DIR$/../../flutter/src/flutter/packages/flutter_tools/gradle" />
+            <option value="$PROJECT_DIR$/../../pubcache/hosted/pub.dev/android_intent_plus-5.3.1/android" />
+            <option value="$PROJECT_DIR$/../../pubcache/hosted/pub.dev/cloud_firestore-6.0.3/android" />
+            <option value="$PROJECT_DIR$/../../pubcache/hosted/pub.dev/file_picker-8.3.7/android" />
+            <option value="$PROJECT_DIR$/../../pubcache/hosted/pub.dev/firebase_auth-6.1.1/android" />
+            <option value="$PROJECT_DIR$/../../pubcache/hosted/pub.dev/firebase_core-4.2.0/android" />
+            <option value="$PROJECT_DIR$/../../pubcache/hosted/pub.dev/firebase_storage-13.0.3/android" />
+            <option value="$PROJECT_DIR$/../../pubcache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.32/android" />
+            <option value="$PROJECT_DIR$/../../pubcache/hosted/pub.dev/image_picker_android-0.8.13+5/android" />
+            <option value="$PROJECT_DIR$/../../pubcache/hosted/pub.dev/shared_preferences_android-2.4.14/android" />
+            <option value="$PROJECT_DIR$/../../pubcache/hosted/pub.dev/url_launcher_android-6.3.23/android" />
+            <option value="$PROJECT_DIR$/../../pubcache/hosted/pub.dev/video_player_android-2.8.17/android" />
+            <option value="$PROJECT_DIR$/../../pubcache/hosted/pub.dev/webview_flutter_android-4.10.5/android" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+    </option>
+  </component>
+</project>

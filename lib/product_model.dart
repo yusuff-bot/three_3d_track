@@ -7,8 +7,8 @@ class Product {
   final String description;
   final List<String> imageUrls;
   final String? videoUrl;
-  final String? modelUrl;  // 3D model URL
-  final String? material;  // Material info
+  final String? modelUrl; // 3D model URL
+  final String? material; // Material info
   final List<Color> availableColors;
   final List<String> availableSizes;
 
@@ -72,6 +72,9 @@ class Product {
   static Color _stringToColor(String colorString) {
     return _colorMap[colorString.toLowerCase()] ?? Colors.grey;
   }
+
+  // Public helper so other files can convert string names to Color.
+  static Color parseColor(String colorString) => _stringToColor(colorString);
 
   static String _colorToString(Color c) {
     if (c == Colors.red) return 'red';

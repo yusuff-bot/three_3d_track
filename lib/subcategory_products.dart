@@ -1,7 +1,9 @@
-// subcategory_products.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'addproduct.dart';
+import 'productdetail.dart';
+import 'product_model.dart';
+import 'src/safe_network_image.dart';
 
 class SubcategoryProductsScreen extends StatelessWidget {
   final String categoryId;
@@ -31,8 +33,10 @@ class SubcategoryProductsScreen extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: _productsRef.orderBy('timestamp', descending: true).snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text('No products yet.'));
+          if (snapshot.connectionState == ConnectionState.waiting)
+            return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty)
+            return const Center(child: Text('No products yet.'));
 
           final products = snapshot.data!.docs;
           return ListView.builder(
@@ -41,13 +45,49 @@ class SubcategoryProductsScreen extends StatelessWidget {
               final doc = products[index];
               final name = doc['name'];
               final price = doc['price'];
-              final photoUrl = doc['photoUrl'];
+              // Prefer 'imageUrls' (array) and fall back to 'photoUrl' for older docs
+              String? photoUrl;
+              final data = doc.data() as Map<String, dynamic>?;
+              if (data != null) {
+                final imgs = data.containsKey('imageUrls')
+                    ? data['imageUrls']
+                    : null;
+                if (imgs is List && imgs.isNotEmpty) {
+                  photoUrl = imgs.first as String?;
+                } else if (data.containsKey('photoUrl')) {
+                  photoUrl = data['photoUrl'] as String?;
+                }
+              } else {
+                photoUrl = null;
+              }
+
+              final placeholder = 'https://via.placeholder.com/56x56?text=Prod';
               return ListTile(
-                leading: photoUrl != null ? Image.network(photoUrl, width: 56, height: 56, fit: BoxFit.cover) : const Icon(Icons.production_quantity_limits),
+                leading: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: SafeNetworkImage(
+                    image: photoUrl,
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                    placeholderUrl: placeholder,
+                  ),
+                ),
                 title: Text(name),
                 subtitle: Text('₹${price.toString()}'),
                 onTap: () {
-                  // Optionally navigate to product detail/edit screen if you implement that
+                  // Build a Product model from the document and open ProductDetail to view (including 3D model)
+                  final data = doc.data() as Map<String, dynamic>?;
+                  if (data != null) {
+                    final product = Product.fromMap(data, doc.id);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductDetail(product: product),
+                      ),
+                    );
+                  }
                 },
               );
             },
