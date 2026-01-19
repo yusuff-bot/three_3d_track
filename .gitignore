@@ -1,34 +1,60 @@
-# Flutter/Dart
+# Flutter/Dart/Pub
 .dart_tool/
+.flutter-plugins
 .packages
-.pub/
+.pub-cache/
 build/
-flutter_build/
 pubspec.lock
 
 # Android
 android/.gradle/
-android/build/
-**/gradle-app.setting
-*.apk
-*.aab
-*.so
-*.dill
+android/app/build/
+*.iml
+*.hprof
+local.properties
+*.keystore
+.cxx/
+captures/
+.externalNativeBuild/
 
 # iOS
 ios/Flutter/Flutter.framework
 ios/Flutter/Flutter.podspec
 ios/Pods/
 ios/Runner.xcworkspace/
-ios/build/
-*.xcuserdatad
+ios/Runner/GeneratedPluginRegistrant.*
+*.mode1v3
+*.mode2v3
+*.pbxuser
+*.perspectivev3
+*.xcuserstate
 
-# IDEs
+# VS Code
+.vscode/
+
+# JetBrains/Android Studio
 .idea/
+*.iws
 *.iml
+*.ipr
+*.idea_backup/
 
-# Logs and temporary files
+# Binary files
+*.apk
+*.aab
+*.so
+*.dill
+*.lib
+*.class
+*.jar
+*.dex
+
+# Logs
 *.log
+flutter_*.log
+
+# Misc
+*.lock
 *.tmp
-*.zip
-*.keystore
+*.swp
+.DS_Store
