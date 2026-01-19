@@ -1,0 +1,34 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+.pub/
+build/
+flutter_build/
+pubspec.lock
+
+# Android
+android/.gradle/
+android/build/
+**/gradle-app.setting
+*.apk
+*.aab
+*.so
+*.dill
+
+# iOS
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Pods/
+ios/Runner.xcworkspace/
+ios/build/
+*.xcuserdatad
+
+# IDEs
+.idea/
+*.iml
+
+# Logs and temporary files
+*.log
+*.tmp
+*.zip
+*.keystore
