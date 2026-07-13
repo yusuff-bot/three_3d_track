@@ -11,7 +11,6 @@ import 'src/file_upload_helper_io.dart'
 
 class ManageCategoriesScreen extends StatefulWidget {
   const ManageCategoriesScreen({super.key});
-
   @override
   State<ManageCategoriesScreen> createState() => _ManageCategoriesScreenState();
 }
@@ -20,7 +19,6 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
   final _categoryController = TextEditingController();
   final CollectionReference _categoriesRef = FirebaseFirestore.instance
       .collection('categories');
-
   String? _categoryImageUrl;
   String? _categoryImageName;
 
@@ -30,8 +28,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
     super.dispose();
   }
 
-  // PICK IMAGE
-  Future<void> _pickCategoryImage() async {
+    Future<void> _pickCategoryImage() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       withData: true,
