@@ -1,20 +1,17 @@
 import 'package:flutter/material.dart';
-// NOTE: The standard Flutter library 'package:flutter/services.dart' is now
-// omitted, and input formatting is handled via the onChanged callback.
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // Define the custom bright cyan color used in the Figma design buttons
 const Color _brightCyan = Color(0xFF00C3F9);
 
-// --- Inventory Detail Screen Widget ---
-
 class InventoryDetailScreen extends StatefulWidget {
   final String itemName;
-  final int initialQuantity;
+  final String collectionName;
 
   const InventoryDetailScreen({
     super.key,
-    this.itemName = 'Product Item Name',
-    this.initialQuantity = 120, // Default value from the screenshot
+    required this.itemName,
+    required this.collectionName,
   });
 
   @override
@@ -22,11 +19,9 @@ class InventoryDetailScreen extends StatefulWidget {
 }
 
 class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
-  // State variables
-  late int _currentQuantity;
-  int? _currentThreshold; // Nullable if no threshold is set
-  String _refillInput = ''; // Holds the text input for Refills
-  String _manualInput = ''; // Holds the text input for Add or Subtract
+  // State variables for inputs
+  String _refillInput = '';
+  String _manualInput = '';
 
   // Controllers for text fields
   final TextEditingController _thresholdController = TextEditingController();
@@ -37,15 +32,13 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
   final FocusNode _refillFocusNode = FocusNode();
   final FocusNode _manualFocusNode = FocusNode();
 
-  // State for Bottom Navigation Bar to match OwnerDashboard logic
+  // State for Bottom Navigation Bar
   int _selectedIndex = 2; // Default to 'Inventory'
 
   @override
   void initState() {
     super.initState();
-    _currentQuantity = widget.initialQuantity;
 
-    // Listen to changes in the refill and manual input fields
     _refillController.addListener(() {
       setState(() {
         _refillInput = _refillController.text;
@@ -68,95 +61,110 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     super.dispose();
   }
 
-  // --- Core Logic Functions (remain the same) ---
-
-  // Custom function to ensure only digits are processed
   String _filterDigits(String text) {
     return text.replaceAll(RegExp(r'[^0-9]'), '');
   }
 
-  void _applyThreshold() {
+  Future<void> _applyThreshold(int? currentThreshold) async {
     final text = _thresholdController.text.trim();
     final value = int.tryParse(text);
 
+    final docRef = FirebaseFirestore.instance
+        .collection(widget.collectionName)
+        .doc(widget.itemName);
+
     if (value != null && value >= 0) {
-      setState(() {
-        _currentThreshold = value;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Threshold set to $value')),
-      );
-      _thresholdController.clear();
-      FocusScope.of(context).unfocus();
+      try {
+        await docRef.update({'threshold': value});
+        _showSuccessSnackBar('Threshold set to $value');
+        _thresholdController.clear();
+        FocusScope.of(context).unfocus();
+      } catch (e) {
+        _showErrorSnackBar('Failed to update threshold: $e');
+      }
     } else if (text.isEmpty) {
-      setState(() {
-        _currentThreshold = null;
-      });
+      try {
+        await docRef.update({'threshold': FieldValue.delete()});
+        _showSuccessSnackBar('Threshold cleared');
+        FocusScope.of(context).unfocus();
+      } catch (e) {
+        _showErrorSnackBar('Failed to clear threshold: $e');
+      }
     } else {
       _showErrorSnackBar('Invalid number for Threshold.');
     }
   }
 
-  void _refillStock() {
+  Future<void> _refillStock(int currentQuantity) async {
     final value = int.tryParse(_refillInput);
 
     if (value != null && value > 0) {
-      setState(() {
-        _currentQuantity += value;
-      });
-      _showSuccessSnackBar('$value added. New quantity: $_currentQuantity');
-      _refillController.clear();
-      _manualController.clear();
-      _manualFocusNode.unfocus();
-      _refillFocusNode.unfocus();
+      final docRef = FirebaseFirestore.instance
+          .collection(widget.collectionName)
+          .doc(widget.itemName);
+
+      try {
+        final newQty = currentQuantity + value;
+        await docRef.update({'quantity': newQty});
+        _showSuccessSnackBar('$value added. New quantity: $newQty');
+        _refillController.clear();
+        _manualController.clear();
+        _manualFocusNode.unfocus();
+        _refillFocusNode.unfocus();
+      } catch (e) {
+        _showErrorSnackBar('Failed to refill stock: $e');
+      }
     } else {
       _showErrorSnackBar('Enter a quantity greater than zero to refill.');
     }
   }
 
-  void _adjustQuantity(bool isAdd) {
+  Future<void> _adjustQuantity(int currentQuantity, bool isAdd) async {
     final value = int.tryParse(_manualInput);
 
     if (value != null && value > 0) {
-      setState(() {
-        if (isAdd) {
-          _currentQuantity += value;
-        } else {
-          _currentQuantity = (_currentQuantity - value).clamp(0, _currentQuantity);
-        }
-      });
+      final docRef = FirebaseFirestore.instance
+          .collection(widget.collectionName)
+          .doc(widget.itemName);
 
-      final action = isAdd ? 'Added' : 'Subtracted';
-      _showSuccessSnackBar('$value $action. New quantity: $_currentQuantity');
-      _manualController.clear();
-      _refillController.clear();
-      _manualFocusNode.unfocus();
-      _refillFocusNode.unfocus();
+      try {
+        final newQty = isAdd
+            ? currentQuantity + value
+            : (currentQuantity - value).clamp(0, currentQuantity);
+        await docRef.update({'quantity': newQty});
+
+        final action = isAdd ? 'Added' : 'Subtracted';
+        _showSuccessSnackBar('$value $action. New quantity: $newQty');
+        _manualController.clear();
+        _refillController.clear();
+        _manualFocusNode.unfocus();
+        _refillFocusNode.unfocus();
+      } catch (e) {
+        _showErrorSnackBar('Failed to adjust quantity: $e');
+      }
     } else {
       _showErrorSnackBar('Enter a quantity greater than zero to adjust.');
     }
   }
 
-  void _saveChanges() {
+  void _saveChanges(int currentQty, int? currentThreshold) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Changes Saved! Quantity: $_currentQuantity, Threshold: ${_currentThreshold ?? 'None'}'),
+        content: Text(
+            'Changes Saved! Quantity: $currentQty, Threshold: ${currentThreshold ?? 'None'}'),
         duration: const Duration(seconds: 2),
-        backgroundColor: _brightCyan, // Using the custom color
+        backgroundColor: _brightCyan,
       ),
     );
+    Navigator.of(context).pop();
   }
 
-  // --- Navigation Handler ---
   void _onBottomNavTap(int index) {
     setState(() {
       _selectedIndex = index;
     });
-    // Placeholder navigation logic based on the OwnerDashboard context
     debugPrint('Tapped on index $index');
   }
-
-  // --- UI Helper Widgets (remain the same) ---
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -184,7 +192,8 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     );
   }
 
-  Widget _buildQuantityText(String label, int value, {Color color = Colors.black}) {
+  Widget _buildQuantityText(String label, int value,
+      {Color color = Colors.black}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -209,235 +218,283 @@ class _InventoryDetailScreenState extends State<InventoryDetailScreen> {
     );
   }
 
-  // --- Build Method ---
-
   @override
   Widget build(BuildContext context) {
-    final bool canRefill = int.tryParse(_refillInput) != null && int.tryParse(_refillInput)! > 0;
-    final bool canAdjust = int.tryParse(_manualInput) != null && int.tryParse(_manualInput)! > 0;
-    final bool isBelowThreshold = _currentThreshold != null && _currentQuantity < _currentThreshold!;
+    final bool canRefill =
+        int.tryParse(_refillInput) != null && int.tryParse(_refillInput)! > 0;
+    final bool canAdjust =
+        int.tryParse(_manualInput) != null && int.tryParse(_manualInput)! > 0;
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          widget.itemName,
-          style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-      ),
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection(widget.collectionName)
+          .doc(widget.itemName)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return Scaffold(
+            appBar: AppBar(title: Text(widget.itemName)),
+            body: const Center(child: Text("Item not found.")),
+          );
+        }
 
-      // Body Content
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
+        final data = snapshot.data!.data() as Map<String, dynamic>;
+        final currentQuantity = data['quantity'] ?? 0;
+        final currentThreshold = data['threshold'] as int?;
+        final bool isBelowThreshold =
+            currentThreshold != null && currentQuantity < currentThreshold;
 
-            // 1. Current Quantity Display
-            _buildQuantityText(
-              'Current Quantity',
-              _currentQuantity,
-              color: isBelowThreshold ? Colors.red.shade700 : Colors.black,
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              onPressed: () => Navigator.of(context).pop(),
             ),
-            const SizedBox(height: 16),
-
-            // 2. Threshold Section
-            _buildSectionTitle('Threshold'),
-            TextFormField(
-              controller: _thresholdController,
-              keyboardType: TextInputType.number,
-              onChanged: (value) {
-                final filtered = _filterDigits(value);
-                if (value != filtered) {
-                  _thresholdController.value = _thresholdController.value.copyWith(
-                    text: filtered,
-                    selection: TextSelection.collapsed(offset: filtered.length),
-                  );
-                }
-              },
-              decoration: InputDecoration(
-                hintText: _currentThreshold == null
-                    ? 'Set low stock warning (optional)'
-                    : 'Current: ${_currentThreshold!}',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.check, color: Colors.blueAccent),
-                  onPressed: _applyThreshold,
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
+            title: Text(
+              widget.itemName,
+              style: const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
               ),
-              onEditingComplete: _applyThreshold,
             ),
-
-            // 3. Refills Section
-            _buildSectionTitle('Refills'),
-            Row(
+            centerTitle: true,
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _refillController,
-                    focusNode: _refillFocusNode,
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      final filtered = _filterDigits(value);
-                      if (value != filtered) {
-                        _refillController.value = _refillController.value.copyWith(
-                          text: filtered,
-                          selection: TextSelection.collapsed(offset: filtered.length),
-                        );
-                      }
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Quantity to add',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: canRefill ? _refillStock : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _brightCyan, // Corrected color
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    minimumSize: const Size(0, 50), // Match height of text field
-                  ),
-                  child: const Text('Refill', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
+                const SizedBox(height: 20),
 
-            // 4. Add or Subtract Section (MODIFIED TO MATCH MaterialDetails.dart)
-            _buildSectionTitle('Add or Subtract'),
-            Row(
-              children: [
-                // Add Button (First position)
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: canAdjust ? () => _adjustQuantity(true) : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey.shade200,
-                      foregroundColor: Colors.black87,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      minimumSize: const Size(0, 50),
-                    ),
-                    child: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
+                // 1. Current Quantity Display
+                _buildQuantityText(
+                  'Current Quantity',
+                  currentQuantity,
+                  color: isBelowThreshold ? Colors.red.shade700 : Colors.black,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(height: 16),
 
-                // Input Field (Middle position)
-                Expanded(
-                  child: Container(
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                // 2. Threshold Section
+                _buildSectionTitle('Threshold'),
+                TextFormField(
+                  controller: _thresholdController,
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    final filtered = _filterDigits(value);
+                    if (value != filtered) {
+                      _thresholdController.value =
+                          _thresholdController.value.copyWith(
+                        text: filtered,
+                        selection:
+                            TextSelection.collapsed(offset: filtered.length),
+                      );
+                    }
+                  },
+                  decoration: InputDecoration(
+                    hintText: currentThreshold == null
+                        ? 'Set low stock warning (optional)'
+                        : 'Current: $currentThreshold',
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.check, color: Colors.blueAccent),
+                      onPressed: () => _applyThreshold(currentThreshold),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
                     ),
-                    child: TextFormField(
-                      controller: _manualController,
-                      focusNode: _manualFocusNode,
-                      keyboardType: TextInputType.number,
-                      onChanged: (value) {
-                        final filtered = _filterDigits(value);
-                        if (value != filtered) {
-                          _manualController.value = _manualController.value.copyWith(
-                            text: filtered,
-                            selection: TextSelection.collapsed(offset: filtered.length),
-                          );
-                        }
-                      },
-                      textAlign: TextAlign.center, // Center the text
-                      textAlignVertical: TextAlignVertical.center,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter quantity', // Changed hint text to 'Enter quantity' for consistency
-                        contentPadding: EdgeInsets.zero, // Centered vertically
-                        border: InputBorder.none,
+                  ),
+                  onEditingComplete: () => _applyThreshold(currentThreshold),
+                ),
+
+                // 3. Refills Section
+                _buildSectionTitle('Refills'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _refillController,
+                        focusNode: _refillFocusNode,
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          final filtered = _filterDigits(value);
+                          if (value != filtered) {
+                            _refillController.value =
+                                _refillController.value.copyWith(
+                              text: filtered,
+                              selection: TextSelection.collapsed(
+                                  offset: filtered.length),
+                            );
+                          }
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Quantity to add',
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-
-                // Subtract Button (Last position)
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: canAdjust ? () => _adjustQuantity(false) : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey.shade200,
-                      foregroundColor: Colors.black87,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      minimumSize: const Size(0, 50),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: canRefill
+                          ? () => _refillStock(currentQuantity)
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _brightCyan,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 16),
+                        minimumSize: const Size(0, 50),
+                      ),
+                      child: const Text('Refill',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
-                    child: const Text('Subtract', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
+                  ],
                 ),
+
+                // 4. Add or Subtract Section
+                _buildSectionTitle('Add or Subtract'),
+                Row(
+                  children: [
+                    // Add Button
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: canAdjust
+                            ? () => _adjustQuantity(currentQuantity, true)
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade200,
+                          foregroundColor: Colors.black87,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          minimumSize: const Size(0, 50),
+                        ),
+                        child: const Text('Add',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Input Field
+                    Expanded(
+                      child: Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: TextFormField(
+                          controller: _manualController,
+                          focusNode: _manualFocusNode,
+                          keyboardType: TextInputType.number,
+                          onChanged: (value) {
+                            final filtered = _filterDigits(value);
+                            if (value != filtered) {
+                              _manualController.value =
+                                  _manualController.value.copyWith(
+                                text: filtered,
+                                selection: TextSelection.collapsed(
+                                    offset: filtered.length),
+                              );
+                            }
+                          },
+                          textAlign: TextAlign.center,
+                          textAlignVertical: TextAlignVertical.center,
+                          decoration: const InputDecoration(
+                            hintText: 'Enter quantity',
+                            contentPadding: EdgeInsets.zero,
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Subtract Button
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: canAdjust
+                            ? () => _adjustQuantity(currentQuantity, false)
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade200,
+                          foregroundColor: Colors.black87,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          minimumSize: const Size(0, 50),
+                        ),
+                        child: const Text('Subtract',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 80),
               ],
             ),
-            const SizedBox(height: 80), // Padding before final button
-          ],
-        ),
-      ),
-
-      // Bottom Navigation Bar and Save Button
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 5. Save Changes Button
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: ElevatedButton(
-              onPressed: _saveChanges,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _brightCyan, // Corrected color
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                minimumSize: const Size(double.infinity, 50),
-              ),
-              child: const Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            ),
           ),
-
-          // 6. Bottom Menu (Matching OwnerDashboard structure)
-          BottomNavigationBar(
-            type: BottomNavigationBarType.fixed,
-            selectedItemColor: Colors.blueAccent, // Consistent styling
-            unselectedItemColor: Colors.grey,
-            currentIndex: _selectedIndex,
-            onTap: _onBottomNavTap, // Use the navigation handler
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: "Dashboard"),
-              BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "Orders"),
-              BottomNavigationBarItem(icon: Icon(Icons.inventory), label: "Inventory"),
-              BottomNavigationBarItem(icon: Icon(Icons.attach_money), label: "Expenses"),
+          bottomNavigationBar: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Save Changes Button
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: ElevatedButton(
+                  onPressed: () =>
+                      _saveChanges(currentQuantity, currentThreshold),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _brightCyan,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  child: const Text('Save Changes',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              BottomNavigationBar(
+                type: BottomNavigationBarType.fixed,
+                selectedItemColor: Colors.blueAccent,
+                unselectedItemColor: Colors.grey,
+                currentIndex: _selectedIndex,
+                onTap: _onBottomNavTap,
+                items: const [
+                  BottomNavigationBarItem(
+                      icon: Icon(Icons.dashboard), label: "Dashboard"),
+                  BottomNavigationBarItem(
+                      icon: Icon(Icons.list_alt), label: "Orders"),
+                  BottomNavigationBarItem(
+                      icon: Icon(Icons.inventory), label: "Inventory"),
+                  BottomNavigationBarItem(
+                      icon: Icon(Icons.attach_money), label: "Expenses"),
+                ],
+              ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

@@ -36,6 +36,13 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+                    // 🔥 IMPORTANT FIX
+        isMinifyEnabled = true
+        isShrinkResources = true
+
+        proguardFiles(
+            getDefaultProguardFile("proguard-android-optimize.txt"),
+            "proguard-rules.pro")
         }
     }
 }
@@ -49,5 +56,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
 
     implementation("com.google.firebase:firebase-analytics")
+    implementation("androidx.window:window:1.2.0")
+    implementation("androidx.window:window-java:1.2.0")
+
 
 }

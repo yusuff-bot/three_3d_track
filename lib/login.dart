@@ -37,9 +37,7 @@ class _LoginState extends State<Login> {
       setState(() {
         _rememberMe = true;
         _emailController.text = prefs.getString('savedEmail') ?? '';
-        _passwordController.text = prefs.getString('savedPassword') ?? '';
       });
-      await _loginUser(autoLogin: true);
     }
   }
 
@@ -59,8 +57,8 @@ class _LoginState extends State<Login> {
     }
   }
 
-  Future<void> _loginUser({bool autoLogin = false}) async {
-    if (!autoLogin && !_formKey.currentState!.validate()) return;
+  Future<void> _loginUser() async {
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
@@ -76,10 +74,10 @@ class _LoginState extends State<Login> {
       if (_rememberMe) {
         await prefs.setBool('rememberMe', true);
         await prefs.setString('savedEmail', _emailController.text.trim());
-        await prefs.setString('savedPassword', _passwordController.text.trim());
       } else {
         await prefs.clear();
       }
+      await prefs.setString('user_role', 'customer');
 
       if (mounted) {
         final user = FirebaseAuth.instance.currentUser!;

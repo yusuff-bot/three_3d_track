@@ -1,10 +1,107 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'login.dart';
 import 'sign_in.dart';
 import 'owners_login.dart';
+import 'customerdashboard.dart';
+import 'ownerdashboard.dart';
 
 class Welcome extends StatelessWidget {
   const Welcome({super.key});
+
+  Future<void> _handleCustomerRedirect(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final prefs = await SharedPreferences.getInstance();
+      String? cachedRole = prefs.getString('user_role');
+
+      if (cachedRole == null) {
+        try {
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+          if (userDoc.exists) {
+            cachedRole = userDoc.data()?['role'] ?? 'customer';
+            await prefs.setString('user_role', cachedRole!);
+          } else {
+            cachedRole = 'customer';
+          }
+        } catch (_) {
+          cachedRole = 'customer';
+        }
+      }
+
+      if (context.mounted) {
+        String displayName = user.email?.split('@').first ?? 'Customer';
+        try {
+          final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+          displayName = userDoc.data()?['name'] ?? displayName;
+        } catch (_) {}
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DashboardPage(
+              username: displayName,
+              userEmail: user.email ?? '',
+            ),
+          ),
+        );
+      }
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const Login()),
+      );
+    }
+  }
+
+  Future<void> _handleOwnerRedirect(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final prefs = await SharedPreferences.getInstance();
+      String? cachedRole = prefs.getString('user_role');
+
+      if (cachedRole == null) {
+        try {
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+          if (userDoc.exists) {
+            cachedRole = userDoc.data()?['role'] ?? 'customer';
+            await prefs.setString('user_role', cachedRole!);
+          } else {
+            cachedRole = 'customer';
+          }
+        } catch (_) {
+          cachedRole = 'customer';
+        }
+      }
+
+      if (cachedRole == 'owner') {
+        if (context.mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OwnerDashboard(username: user.email ?? 'Owner'),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const OwnerLoginPage()),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,12 +167,7 @@ class Welcome extends StatelessWidget {
                         ),
                         elevation: 4,
                       ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const Login()),
-                        );
-                      },
+                      onPressed: () => _handleCustomerRedirect(context),
                       child: const Text(
                         "Log In",
                         style: TextStyle(
@@ -129,12 +221,7 @@ class Welcome extends StatelessWidget {
                   children: [
                     // 🔹 Owner Login
                     GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const OwnerLoginPage()),
-                        );
-                      },
+                      onTap: () => _handleOwnerRedirect(context),
                       child: const Text(
                         "Owner Login",
                         style: TextStyle(

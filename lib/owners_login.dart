@@ -29,22 +29,17 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
     _loadSavedCredentials();
   }
 
-  // ✅ Load saved credentials and auto-login if remember me is on
+  // ✅ Load saved credentials
   Future<void> _loadSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
     final savedEmail = prefs.getString('owner_email');
-    final savedPassword = prefs.getString('owner_password');
     final remember = prefs.getBool('owner_remember') ?? false;
 
-    if (savedEmail != null && savedPassword != null && remember) {
+    if (savedEmail != null && remember) {
       setState(() {
         _emailController.text = savedEmail;
-        _passwordController.text = savedPassword;
         _rememberMe = true;
       });
-
-      // ✅ Auto login directly when remembered
-      Future.delayed(const Duration(milliseconds: 500), _loginOwner);
     }
   }
 
@@ -53,11 +48,10 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
     final prefs = await SharedPreferences.getInstance();
     if (_rememberMe) {
       await prefs.setString('owner_email', _emailController.text.trim());
-      await prefs.setString('owner_password', _passwordController.text.trim());
       await prefs.setBool('owner_remember', true);
     } else {
       await prefs.remove('owner_email');
-      await prefs.remove('owner_password');
+      await prefs.remove('owner_password'); // remove potentially outdated password
       await prefs.remove('owner_remember');
     }
   }
@@ -93,6 +87,8 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
       // Step 3: Verify owner role
       if (role == 'owner') {
         await _handleRememberMe();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_role', 'owner');
 
         if (mounted) {
           Navigator.pushReplacement(

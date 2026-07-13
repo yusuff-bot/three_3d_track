@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'login.dart';
 import 'profileeditpage.dart';
 import 'faq.dart';
 import 'orderhistory.dart';
+import 'ownerdashboard.dart';
 
 class SettingsPage extends StatefulWidget {
   final String userName;
@@ -25,6 +29,7 @@ class _SettingsPageState extends State<SettingsPage> {
   late String userEmail;
   late String phoneNumber;
   bool orderUpdates = false;
+  bool _isOwner = false;
 
   @override
   void initState() {
@@ -32,6 +37,24 @@ class _SettingsPageState extends State<SettingsPage> {
     userName = widget.userName;
     userEmail = widget.userEmail;
     phoneNumber = widget.phoneNumber;
+    _checkOwnerRole();
+  }
+
+  Future<void> _checkOwnerRole() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        if (doc.exists && doc.data()?['role'] == 'owner') {
+          setState(() {
+            _isOwner = true;
+          });
+        }
+      } catch (_) {}
+    }
   }
 
   void _launchEmail(BuildContext context) {
@@ -212,6 +235,28 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
 
+              if (_isOwner) ...[
+                const SizedBox(height: 24),
+                const Text(
+                  "Owner Portal",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.admin_panel_settings, color: Colors.blueAccent),
+                  title: const Text("Switch to Owner Dashboard"),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => OwnerDashboard(username: userEmail),
+                      ),
+                      (route) => false,
+                    );
+                  },
+                ),
+              ],
+
               const SizedBox(height: 32),
 
               // Logout
@@ -223,12 +268,17 @@ class _SettingsPageState extends State<SettingsPage> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                   ),
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (_) => const Login()),
-                          (route) => false,
-                    );
+                  onPressed: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.remove('user_role');
+                    await FirebaseAuth.instance.signOut();
+                    if (context.mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const Login()),
+                            (route) => false,
+                      );
+                    }
                   },
                   child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
@@ -286,26 +336,58 @@ class ReviewRatingPage extends StatefulWidget {
 }
 
 class _ReviewRatingPageState extends State<ReviewRatingPage> {
-  final List<Map<String, dynamic>> _reviews = [
-    {"name": "Alice", "rating": 5, "comment": "Excellent products and fast delivery!"},
-    {"name": "Bob", "rating": 4, "comment": "Good quality but packaging could improve."},
-  ];
-
   int _selectedRating = 0;
   final TextEditingController _commentController = TextEditingController();
 
-  void _addReview() {
-    if (_selectedRating == 0 || _commentController.text.isEmpty) return;
+  @override
+  void initState() {
+    super.initState();
+    _seedDefaultReviewsIfEmpty();
+  }
+
+  Future<void> _seedDefaultReviewsIfEmpty() async {
+    try {
+      final snap = await FirebaseFirestore.instance.collection('reviews').limit(1).get();
+      if (snap.docs.isEmpty) {
+        final batch = FirebaseFirestore.instance.batch();
+        final defaultReviews = [
+          {"name": "Alice", "rating": 5, "comment": "Excellent products and fast delivery!", "timestamp": FieldValue.serverTimestamp()},
+          {"name": "Bob", "rating": 4, "comment": "Good quality but packaging could improve.", "timestamp": FieldValue.serverTimestamp()},
+        ];
+        for (var review in defaultReviews) {
+          final docRef = FirebaseFirestore.instance.collection('reviews').doc();
+          batch.set(docRef, review);
+        }
+        await batch.commit();
+      }
+    } catch (_) {}
+  }
+
+  void _addReview() async {
+    if (_selectedRating == 0 || _commentController.text.trim().isEmpty) return;
+
+    final comment = _commentController.text.trim();
+    final rating = _selectedRating;
 
     setState(() {
-      _reviews.insert(0, {
-        "name": widget.userName,
-        "rating": _selectedRating,
-        "comment": _commentController.text,
-      });
       _selectedRating = 0;
       _commentController.clear();
     });
+
+    try {
+      await FirebaseFirestore.instance.collection('reviews').add({
+        "name": widget.userName,
+        "rating": rating,
+        "comment": comment,
+        "timestamp": FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to submit review: $e")),
+        );
+      }
+    }
   }
 
   Widget _buildStarSelector() {
@@ -397,10 +479,27 @@ class _ReviewRatingPageState extends State<ReviewRatingPage> {
             ),
             const SizedBox(height: 10),
             Expanded(
-              child: ListView.builder(
-                itemCount: _reviews.length,
-                itemBuilder: (context, index) =>
-                    _buildReviewCard(_reviews[index]),
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('reviews')
+                    .orderBy('timestamp', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final docs = snapshot.data?.docs ?? [];
+                  if (docs.isEmpty) {
+                    return const Center(child: Text("No reviews yet."));
+                  }
+                  return ListView.builder(
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final data = docs[index].data() as Map<String, dynamic>;
+                      return _buildReviewCard(data);
+                    },
+                  );
+                },
               ),
             ),
           ],

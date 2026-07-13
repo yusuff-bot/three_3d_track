@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'orders_page.dart';
 import 'inventory_page.dart';
 import 'expensepage.dart';
 import 'suggestions_page.dart';
 import 'addcategory.dart';
 import 'perproductdetail.dart';
+import 'welcome.dart';
+import 'customerdashboard.dart';
 
 // ------------------ ENTRY POINT ------------------
 void main() => runApp(const OwnerDashboard(username: ''));
@@ -205,7 +209,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                   MaterialPageRoute(
                     builder: (_) => const InventoryDetailScreen(
                       itemName: "PLA - Blue",
-                      initialQuantity: 200,
+                      collectionName: "inventory_raw",
                     ),
                   ),
                 );
@@ -234,7 +238,7 @@ class _DashboardBodyState extends State<DashboardBody> {
                   MaterialPageRoute(
                     builder: (_) => const InventoryDetailScreen(
                       itemName: "ABS - Red",
-                      initialQuantity: 150,
+                      collectionName: "inventory_raw",
                     ),
                   ),
                 );
@@ -390,6 +394,40 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
           :"",
           style: const TextStyle(color: Colors.black),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.storefront, color: Colors.blueAccent),
+            tooltip: 'Switch to Customer View',
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DashboardPage(
+                    username: widget.username,
+                    userEmail: widget.username,
+                  ),
+                ),
+                (route) => false,
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.black),
+            tooltip: 'Logout',
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('user_role');
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Welcome()),
+                  (route) => false,
+                );
+              }
+            },
+          ),
+        ],
         centerTitle: true,
         backgroundColor: Colors.white,
       ),

@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'order_status.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' as fs;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'cartpage.dart';
 
@@ -34,6 +35,22 @@ class _CustomizeState extends State<Customize> {
   int quantity = 1;
   File? uploadedDesign;
   bool show3DModel = true;
+  bool _isUploading = false;
+
+  Future<String?> _uploadDesignImage(File file) async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? 'anonymous';
+      final fileName = 'designs/${uid}_${DateTime.now().millisecondsSinceEpoch}.png';
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+      final uploadTask = ref.putFile(file);
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      return downloadUrl;
+    } catch (e) {
+      debugPrint('Error uploading custom design to Firebase Storage: $e');
+      return null;
+    }
+  }
 
   @override
   void initState() {
@@ -179,12 +196,43 @@ class _CustomizeState extends State<Customize> {
       return;
     }
 
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to add items to cart')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isUploading = true;
+    });
+
+    String? customDesignUrl;
+    if (uploadedDesign != null) {
+      customDesignUrl = await _uploadDesignImage(uploadedDesign!);
+      if (customDesignUrl == null) {
+        setState(() {
+          _isUploading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Failed to upload custom design image. Please try again."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     final customizedItem = {
       'productName': widget.productName,
       'baseImage': widget.productImage,
       'selectedColor': selectedColor!.value,
       'selectedSize': selectedSize,
-      'uploadedDesignPath': uploadedDesign?.path,
+      'uploadedDesignPath': customDesignUrl,
       'quantity': quantity,
     };
 
@@ -192,18 +240,11 @@ class _CustomizeState extends State<Customize> {
     debugPrint('Product: ${customizedItem['productName']}');
     debugPrint('Size: ${customizedItem['selectedSize']}');
     debugPrint('Color: ${customizedItem['selectedColor']}');
-    if (customizedItem['uploadedDesignPath'] != null)
-      debugPrint('Custom Design: YES');
-    // Persist the cart item to Firestore under the current user's cart
-    try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please sign in to add items to cart')),
-        );
-        return;
-      }
+    if (customizedItem['uploadedDesignPath'] != null) {
+      debugPrint('Custom Design: YES (Stored in Firestore as Storage URL)');
+    }
 
+    try {
       await FirebaseFirestore.instance
           .collection('carts')
           .doc(uid)
@@ -218,23 +259,32 @@ class _CustomizeState extends State<Customize> {
             'timestamp': FieldValue.serverTimestamp(),
           });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("${widget.productName} added to cart!"),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("${widget.productName} added to cart!"),
+            backgroundColor: Colors.green,
+          ),
+        );
 
-      // Optionally navigate to cart
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const CartPage()),
-      );
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const CartPage()),
+        );
+      }
     } catch (e) {
       debugPrint('Failed to add to cart: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to add item to cart')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to add item to cart')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
     }
   }
 
@@ -254,12 +304,35 @@ class _CustomizeState extends State<Customize> {
       return;
     }
 
+    setState(() {
+      _isUploading = true;
+    });
+
+    String? customDesignUrl;
+    if (uploadedDesign != null) {
+      customDesignUrl = await _uploadDesignImage(uploadedDesign!);
+      if (customDesignUrl == null) {
+        setState(() {
+          _isUploading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Failed to upload custom design image. Please try again."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     final item = {
       'productName': widget.productName,
       'baseImage': widget.productImage,
       'selectedColor': selectedColor!.value,
       'selectedSize': selectedSize,
-      'uploadedDesignPath': uploadedDesign?.path,
+      'uploadedDesignPath': customDesignUrl,
       'quantity': quantity,
     };
 
@@ -268,8 +341,6 @@ class _CustomizeState extends State<Customize> {
     String? ownerName;
     String? ownerEmail;
     String? ownerPhone;
-    // Note: customize screen doesn't have productId, so we can't reliably
-    // lookup ownerId unless passed in. We'll leave owner fields null here.
 
     try {
       final orderRef = await fs.FirebaseFirestore.instance
@@ -295,9 +366,16 @@ class _CustomizeState extends State<Customize> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to place order')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to place order')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
     }
   }
 
@@ -328,26 +406,28 @@ class _CustomizeState extends State<Customize> {
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Toggle 3D / Image preview
-            if (widget.modelUrl != null && widget.modelUrl!.isNotEmpty)
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => setState(() => show3DModel = !show3DModel),
-                  child: Text(
-                    show3DModel ? "View Image" : "View 3D Model",
-                    style: const TextStyle(color: Colors.lightBlue),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Toggle 3D / Image preview
+                if (widget.modelUrl != null && widget.modelUrl!.isNotEmpty)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => setState(() => show3DModel = !show3DModel),
+                      child: Text(
+                        show3DModel ? "View Image" : "View 3D Model",
+                        style: const TextStyle(color: Colors.lightBlue),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            Center(
-              child: Container(
-                height: 250 * scale,
+                Center(
+                  child: Container(
+                    height: 250 * scale,
                 width: 250 * scale,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
@@ -556,6 +636,25 @@ class _CustomizeState extends State<Customize> {
             ),
           ],
         ),
+      ),
+          if (_isUploading)
+            Container(
+              color: Colors.black45,
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: Colors.lightBlue),
+                    SizedBox(height: 16),
+                    Text(
+                      'Uploading custom design...',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
